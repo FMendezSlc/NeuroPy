@@ -40,34 +40,41 @@ def build_block(data_file):
         last_seg = neo.SpikeTrain(time_stamps[time_stamps > (num_segments[-1] * inter)], units='sec',
                                   t_start=(num_segments[-1]) * inter, t_stop=((num_segments[-1] + 1) * inter))
         new_block.segments[num_segments[-1]].spiketrains.append(last_seg)
-        print(name)
-        print(new_block.size)
     return new_block
 
 
-a = (1, 2)
-str(a[0])
-cc = neo.ChannelIndex(name='1', index=)
-data_file = '/Users/felipeantoniomendezsalcido/Desktop/MEAs/data_files/CA3_WT_01117_merged_sp.txt'
-raw_data = pd.read_csv(data_file, sep=',', header=0, usecols=[0, 1, 2])
-ord_times = raw_data.groupby(['Channel', 'Unit'])['Timestamp']
-kiis = ord_times.groups.keys()
-for ii in kiis:
-    print(ii)
+data_file = '/Users/felipeantoniomendezsalcido/Desktop/MEAs/data_files/CA3_KO_fem_21117_merged_SP.txt'
+
 n_block = build_block(data_file)
-n_block.segments
 # So we got the spike trains all tidy and nice in a block by segments
 # Now, characterize them
 # What are the most useful statistics to describe a spike train?
 # Firing rate, brust/regular, cv, network spikes, spikes in burst, burst rate
 
 # Build a DataFrame for that data
+num_spt = len(n_block.segments[0].spiketrains)
+exp_dic = {'Firing_Rate': np.zeros(num_spt), 'CV2': np.zeros(num_spt), 'LVar': np.zeros(num_spt)}
+
+ind_i = 0
+
+for ii in n_block.segments[0].spiketrains:
+    exp_dic['Firing_Rate'][ind_i] = est.mean_firing_rate(ii)
+    ii_isis = est.isi(ii)
+    if len(ii_isis) > 1:
+        exp_dic['CV2'][ind_i] = est.cv(ii_isis)
+        exp_dic['LVar'][ind_i] = est.lv(ii_isis)
+    else:
+        print('Not enough spikes in train {}'.format(ind_i))
+    ind_i += 1
+
+exp_df = pd.DataFrame(exp_dic)
+exp_df.describe()
 
 
-stat_dic = {'F_Rate': (), 'CV': (), }
-for i in n_block.segments[0].spikestrains:
-    get_rate = est.mean_firing_rate(i)
-    get_cv = est.cv(i)
+sns.stripplot(exp_df['Firing_Rate'])
+plt.xticks(range(21))
+plt.show()
+est.lv(est.isi(n_block.segments[0].spiketrains[0]))
 
 train = n_block.segments[0].spiketrains
 len(train)
@@ -98,30 +105,20 @@ plt.show()
 cc_mat = corrcoef(binned_trains)
 np.fill_diagonal(cc_mat, 0)
 
-
 plt.figure(figsize=(10, 10))
 sns.heatmap(cc_mat, square=True, cmap='Spectral_r')
 plt.ylabel('Cells')
 plt.xlabel('Cells')
 plt.show()
 
-len(n_block.segments[0].spiketrains)
-
 # Raster Plots
-plt.figure(figsize=(10, 5))
+plt.figure(figsize=(30, 30))
 plt.eventplot(n_block.segments[0].spiketrains, color='k', linelengths=0.5)
 #plt.eventplot(exp_block.segments[1].spiketrains, color='k')
 #plt.eventplot(exp_block.segments[2].spiketrains, color='k')
-
-
 plt.xlabel('Seconds')
 plt.ylabel('Cell')
 plt.yticks(range(len(n_block.segments[0].spiketrains)))
-plt.show()
-
-
-plt.figure(figsize=(30, 2))
-plt.eventplot(train, color='k', linelengths=0.3)
 plt.show()
 
 # Network Spikes
