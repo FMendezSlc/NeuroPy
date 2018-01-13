@@ -68,8 +68,7 @@ for ii in n_block.segments[0].spiketrains:
     ind_i += 1
 
 exp_df = pd.DataFrame(exp_dic)
-exp_df.describe()
-
+exp_df.loc('Firing_Rate')
 
 sns.stripplot(exp_df['Firing_Rate'])
 plt.xticks(range(21))
