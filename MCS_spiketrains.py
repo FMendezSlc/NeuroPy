@@ -9,6 +9,10 @@ import seaborn as sns
 import elephant.statistics as est
 import elephant.spike_train_correlation as sp_cor
 
+a = neo.Block()
+a.ch
+help(neo.channelindex)
+
 
 def build_block(data_file):
     """(plaintextfile_path) -> neo.core.block.Block
@@ -19,6 +23,8 @@ def build_block(data_file):
     raw_data = pd.read_csv(data_file, sep=',', header=0, usecols=[0, 1, 2])
     ord_times = raw_data.groupby(['Channel', 'Unit'])['Timestamp']
     new_block = neo.Block()
+    chx = neo.ChannelIndex(index=None, name='MEA_60')
+    new_block.channel_indexes.append(chx)
     # Next line will not work properly if last spike happens
     # exactly at the end of the recording
     num_segments = range(int(raw_data['Timestamp'].max() // 600 + 1))
@@ -31,15 +37,19 @@ def build_block(data_file):
         inter = 600  # Number of seconds in 10 minutes
         first_seg = neo.SpikeTrain(time_stamps[time_stamps < inter], units='sec', t_stop=inter)
         new_block.segments[0].spiketrains.append(first_seg)
-
+        new_unit = neo.Unit(name=name)
+        sptrs = [first_seg]
         for seg in num_segments[1:-1]:
             seg_train = neo.SpikeTrain(time_stamps[(time_stamps > seg * inter) & (time_stamps < ((seg + 1) * inter))],
                                        units='sec', t_start=(seg * inter), t_stop=((seg + 1) * inter))
             new_block.segments[seg].spiketrains.append(seg_train)
-
+            sptrs.append(seg_train)
         last_seg = neo.SpikeTrain(time_stamps[time_stamps > (num_segments[-1] * inter)], units='sec',
                                   t_start=(num_segments[-1]) * inter, t_stop=((num_segments[-1] + 1) * inter))
         new_block.segments[num_segments[-1]].spiketrains.append(last_seg)
+        sptrs.append(last_seg)
+        new_unit.spiketrains = sptrs
+        chx.units.append(new_unit)
     return new_block
 
 
@@ -52,6 +62,10 @@ n_block = build_block(data_file)
 # Firing rate, brust/regular, cv, network spikes, spikes in burst, burst rate
 
 # Build a DataFrame for that data
+
+
+n_block.list_units[1].spiketrains
+
 num_spt = len(n_block.segments[0].spiketrains)
 exp_dic = {'Firing_Rate': np.zeros(num_spt), 'CV2': np.zeros(num_spt), 'LVar': np.zeros(num_spt)}
 
