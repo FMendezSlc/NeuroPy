@@ -8,10 +8,7 @@ from elephant.spike_train_correlation import corrcoef
 import seaborn as sns
 import elephant.statistics as est
 import elephant.spike_train_correlation as sp_cor
-
-a = neo.Block()
-a.ch
-help(neo.channelindex)
+import os
 
 
 def build_block(data_file):
@@ -53,19 +50,36 @@ def build_block(data_file):
     return new_block
 
 
-data_file = '/Users/felipeantoniomendezsalcido/Desktop/MEAs/data_files/CA3_KO_fem_21117_merged_SP.txt'
+os.chdir('/Users/felipeantoniomendezsalcido/Desktop/MEAs/data_files')
+list_files = os.listdir()
+data_file = os.getcwd() + '/' + list_files[0]
+data_block = build_block(data_file)
 
-n_block = build_block(data_file)
-# So we got the spike trains all tidy and nice in a block by segments
+stats_dic = {'Date': [], 'Gen_type': [], 'Sex': [], 'FR_Bs': [], 'FR_TBS': [],
+             'FR_TBS-30': [], 'FR_TBS-60': [], 'CV2': [], 'Fano_fact': []}
+
+name_keys = list_files[0].split(sep='_')
+name_keys
+
+for unit in data_block.list_units:
+    stats_dic['Date'].append(name_keys[3])
+    stats_dic['Gen_type'].append(name_keys[1])
+    stats_dic['Sex'].append(name_keys[2])
+    stats_dic['FR_Bs'].append(est.mean_firing_rate(unit.spiketrains[0]))
+    stats_dic['FR_TBS'].append(est.mean_firing_rate(unit.spiketrains[1]))
+    stats_dic['FR_TBS-30'].append(est.mean_firing_rate(unit.spiketrains[2]))
+    stats_dic['FR_TBS-60'].append(est.mean_firing_rate(unit.spiketrains[3]))
+    intervals = est.isi(unit.spiketrains[0])
+    stats_dic['CV2'].append(est.cv(intervals))
+    stats_dic['Fano_fact'].append(est.fanofactor(unit.spiketrains))
+
+build _df = pd.DataFrame(stats_dic)
+
 # Now, characterize them
 # What are the most useful statistics to describe a spike train?
 # Firing rate, brust/regular, cv, network spikes, spikes in burst, burst rate
 
 # Build a DataFrame for that data
-
-
-n_block.list_units[1].spiketrains
-
 num_spt = len(n_block.segments[0].spiketrains)
 exp_dic = {'Firing_Rate': np.zeros(num_spt), 'CV2': np.zeros(num_spt), 'LVar': np.zeros(num_spt)}
 
@@ -87,12 +101,6 @@ exp_df.loc('Firing_Rate')
 sns.stripplot(exp_df['Firing_Rate'])
 plt.xticks(range(21))
 plt.show()
-est.lv(est.isi(n_block.segments[0].spiketrains[0]))
-
-train = n_block.segments[0].spiketrains
-len(train)
-isis = est.isi(train)
-
 
 # Calculate and build the crosscorrelation matrix
 binned_trains = BinnedSpikeTrain(n_block.segments[0].spiketrains, binsize=10 * s)
