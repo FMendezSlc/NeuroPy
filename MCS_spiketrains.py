@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from quantities import Hz, s, ms
 from elephant.conversion import BinnedSpikeTrain
-from elephant.spike_train_correlation import corrcoef
 import seaborn as sns
 import elephant.statistics as est
 import elephant.spike_train_correlation as sp_cor
@@ -50,10 +49,17 @@ def build_block(data_file):
     return new_block
 
 
+ex_exp = build_block(
+    '/Users/felipeantoniomendezsalcido/Desktop/MEAs/data_files/CA3_WT_fem_091117_merged_sp.txt')
+
+
 os.chdir('/Users/felipeantoniomendezsalcido/Desktop/MEAs/data_files')
+
 list_files = os.listdir()
 data_file = os.getcwd() + '/' + list_files[0]
 data_block = build_block(data_file)
+
+# Build a DataFrame for that data
 
 stats_dic = {'Date': [], 'Gen_type': [], 'Sex': [], 'FR_Bs': [], 'FR_TBS': [],
              'FR_TBS-30': [], 'FR_TBS-60': [], 'CV2': [], 'Fano_fact': []}
@@ -79,31 +85,25 @@ build _df = pd.DataFrame(stats_dic)
 # What are the most useful statistics to describe a spike train?
 # Firing rate, brust/regular, cv, network spikes, spikes in burst, burst rate
 
-# Build a DataFrame for that data
-num_spt = len(n_block.segments[0].spiketrains)
-exp_dic = {'Firing_Rate': np.zeros(num_spt), 'CV2': np.zeros(num_spt), 'LVar': np.zeros(num_spt)}
-
-ind_i = 0
-
-for ii in n_block.segments[0].spiketrains:
-    exp_dic['Firing_Rate'][ind_i] = est.mean_firing_rate(ii)
-    ii_isis = est.isi(ii)
-    if len(ii_isis) > 1:
-        exp_dic['CV2'][ind_i] = est.cv(ii_isis)
-        exp_dic['LVar'][ind_i] = est.lv(ii_isis)
-    else:
-        print('Not enough spikes in train {}'.format(ind_i))
-    ind_i += 1
-
-exp_df = pd.DataFrame(exp_dic)
-exp_df.loc('Firing_Rate')
-
 sns.stripplot(exp_df['Firing_Rate'])
 plt.xticks(range(21))
 plt.show()
 
-# Calculate and build the crosscorrelation matrix
-binned_trains = BinnedSpikeTrain(n_block.segments[0].spiketrains, binsize=10 * s)
+# Build the crosscorrelation matrix according to Eggermont
+binned_trains = [BinnedSpikeTrain(ii, binsize=0.001 * s) for ii in ex_exp.segments[0].spiketrains]
+
+few_trains = binned_trains[0:9]
+
+
+egg_mat_size = len(few_trains)
+egg_mat = np.zeros((egg_mat_size, egg_mat_size), float)
+
+for ii in range(egg_mat_size):
+    print('Im on it, Neuron {}'.format(ii))
+    for jj in range(egg_mat_size):
+        cch_try = sp_cor.cch(few_trains[ii], few_trains[jj], cross_corr_coef=True)
+        egg_mat[ii, jj] = max(cch_try)
+
 
 bin_mat = binned_trains.to_array()
 bin_mat.shape
