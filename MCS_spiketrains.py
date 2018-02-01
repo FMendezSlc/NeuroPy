@@ -54,32 +54,33 @@ ex_exp = build_block(
 
 
 os.chdir('/Users/felipeantoniomendezsalcido/Desktop/MEAs/data_files')
-
-list_files = os.listdir()
-data_file = os.getcwd() + '/' + list_files[0]
-data_block = build_block(data_file)
-
 # Build a DataFrame for that data
-
+list_files = os.listdir()
 stats_dic = {'Date': [], 'Gen_type': [], 'Sex': [], 'FR_Bs': [], 'FR_TBS': [],
              'FR_TBS-30': [], 'FR_TBS-60': [], 'CV2': [], 'Fano_fact': []}
+for ii in list_files:
+    data_file = os.getcwd() + '/' + ii
+    name_keys = ii.split(sep='_')
+    data_block = build_block(data_file)
 
-name_keys = list_files[0].split(sep='_')
-name_keys
+    for unit in data_block.list_units:
+        stats_dic['Date'].append(name_keys[3])
+        stats_dic['Gen_type'].append(name_keys[1])
+        stats_dic['Sex'].append(name_keys[2])
+        stats_dic['FR_Bs'].append(est.mean_firing_rate(unit.spiketrains[0]))
+        stats_dic['FR_TBS'].append(est.mean_firing_rate(unit.spiketrains[1]))
+        stats_dic['FR_TBS-30'].append(est.mean_firing_rate(unit.spiketrains[2]))
+        stats_dic['FR_TBS-60'].append(est.mean_firing_rate(unit.spiketrains[3]))
+        intervals = est.isi(unit.spiketrains[0])
+        stats_dic['CV2'].append(est.cv(intervals))
+        stats_dic['Fano_fact'].append(est.fanofactor(unit.spiketrains))
 
-for unit in data_block.list_units:
-    stats_dic['Date'].append(name_keys[3])
-    stats_dic['Gen_type'].append(name_keys[1])
-    stats_dic['Sex'].append(name_keys[2])
-    stats_dic['FR_Bs'].append(est.mean_firing_rate(unit.spiketrains[0]))
-    stats_dic['FR_TBS'].append(est.mean_firing_rate(unit.spiketrains[1]))
-    stats_dic['FR_TBS-30'].append(est.mean_firing_rate(unit.spiketrains[2]))
-    stats_dic['FR_TBS-60'].append(est.mean_firing_rate(unit.spiketrains[3]))
-    intervals = est.isi(unit.spiketrains[0])
-    stats_dic['CV2'].append(est.cv(intervals))
-    stats_dic['Fano_fact'].append(est.fanofactor(unit.spiketrains))
+build_df = pd.DataFrame(stats_dic)
+new_ord = ['Date', 'Sex', 'Gen_type', 'CV2', 'FR_Bs',
+           'FR_TBS', 'FR_TBS-30', 'FR_TBS-60', 'Fano_fact']
+ordered_df = build_df[new_ord]
+ordered_df.describe
 
-build _df = pd.DataFrame(stats_dic)
 
 # Now, characterize them
 # What are the most useful statistics to describe a spike train?
@@ -91,9 +92,7 @@ plt.show()
 
 # Build the crosscorrelation matrix according to Eggermont
 binned_trains = [BinnedSpikeTrain(ii, binsize=0.001 * s) for ii in ex_exp.segments[0].spiketrains]
-
 few_trains = binned_trains[0:9]
-
 
 egg_mat_size = len(few_trains)
 egg_mat = np.zeros((egg_mat_size, egg_mat_size), float)
@@ -104,7 +103,8 @@ for ii in range(egg_mat_size):
         cch_try = sp_cor.cch(few_trains[ii], few_trains[jj], cross_corr_coef=True)
         egg_mat[ii, jj] = max(cch_try)
 
-
+2 + 2
+egg_mat
 bin_mat = binned_trains.to_array()
 bin_mat.shape
 lim = bin_mat.shape[1]
