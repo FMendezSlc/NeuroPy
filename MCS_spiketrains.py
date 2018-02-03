@@ -52,9 +52,8 @@ def build_block(data_file):
 ex_exp = build_block(
     '/Users/felipeantoniomendezsalcido/Desktop/MEAs/data_files/CA3_WT_fem_091117_merged_sp.txt')
 
-
 os.chdir('/Users/felipeantoniomendezsalcido/Desktop/MEAs/data_files')
-# Build a DataFrame for that data
+# Exploratory dataframe for an experiment
 list_files = os.listdir()
 stats_dic = {'Date': [], 'Gen_type': [], 'Sex': [], 'FR_Bs': [], 'FR_TBS': [],
              'FR_TBS-30': [], 'FR_TBS-60': [], 'CV2': [], 'Fano_fact': []}
@@ -67,19 +66,29 @@ for ii in list_files:
         stats_dic['Date'].append(name_keys[3])
         stats_dic['Gen_type'].append(name_keys[1])
         stats_dic['Sex'].append(name_keys[2])
-        stats_dic['FR_Bs'].append(est.mean_firing_rate(unit.spiketrains[0]))
-        stats_dic['FR_TBS'].append(est.mean_firing_rate(unit.spiketrains[1]))
-        stats_dic['FR_TBS-30'].append(est.mean_firing_rate(unit.spiketrains[2]))
-        stats_dic['FR_TBS-60'].append(est.mean_firing_rate(unit.spiketrains[3]))
+        stats_dic['FR_Bs'].append(est.mean_firing_rate(unit.spiketrains[0]).item())
+        stats_dic['FR_TBS'].append(est.mean_firing_rate(unit.spiketrains[1]).item())
+        stats_dic['FR_TBS-30'].append(est.mean_firing_rate(unit.spiketrains[2]).item())
+        stats_dic['FR_TBS-60'].append(est.mean_firing_rate(unit.spiketrains[3]).item())
         intervals = est.isi(unit.spiketrains[0])
         stats_dic['CV2'].append(est.cv(intervals))
         stats_dic['Fano_fact'].append(est.fanofactor(unit.spiketrains))
+
 
 build_df = pd.DataFrame(stats_dic)
 new_ord = ['Date', 'Sex', 'Gen_type', 'CV2', 'FR_Bs',
            'FR_TBS', 'FR_TBS-30', 'FR_TBS-60', 'Fano_fact']
 ordered_df = build_df[new_ord]
-ordered_df.describe
+ordered_df['Fano_fact']
+
+ordered_df['FR_Bs'][0].
+plt.figure(figsize=(10, 10))
+sns.pairplot(data=ordered_df, hue='Gen_type', vars=['FR_Bs', 'CV2', 'Fano_fact'])
+plt.show()
+
+plt.figure(figsize=(10, 10))
+sns.stripplot(x='Gen_type', y='FR_Bs', hue='Sex', data=ordered_df, jitter=True)
+plt.show()
 
 
 # Now, characterize them
