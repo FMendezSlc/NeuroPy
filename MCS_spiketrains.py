@@ -3,11 +3,9 @@ import neo
 import matplotlib.pyplot as plt
 import pandas as pd
 from quantities import Hz, s, ms
-from elephant.conversion import BinnedSpikeTrain
-from elephant import spike_train_generation as sp_gen
+import elephant as elp
 import seaborn as sns
-import elephant.statistics as est
-import elephant.spike_train_correlation as sp_cor
+import networkx as netx
 import os
 
 
@@ -18,7 +16,7 @@ def build_block(data_file):
     For practicality and Plexon management of channels names, units and channels have been ignored in the block structure."""
 
     raw_data = pd.read_csv(data_file, sep=',', header=0, usecols=[0, 1, 2])
-    ord_times = raw_data.groupby(['Channel', 'Unit'])['Timestamp']
+    ord_times = raw_data.groupby(['Channel Name', 'Unit'])['Timestamp']
     new_block = neo.Block()
     chx = neo.ChannelIndex(index=None, name='MEA_60')
     new_block.channel_indexes.append(chx)
@@ -50,16 +48,16 @@ def build_block(data_file):
     return new_block
 
 
+ff = '/Users/felipeantoniomendezsalcido/Desktop/MEAs/spike_times/CA3_KO_male_170218_merged_sp.txt'
 ex_exp = build_block(
-    '/Users/felipeantoniomendezsalcido/Desktop/MEAs/data_files/CA3_WT_fem_091117_merged_sp.txt')
-ex_exp.segments[0].spiketrains[0][-1]
-# Working function to calculate the Spike Time Tiling Coefficient
-# According to Cutts and Eglen (2014)
-# Original function written in C (github/CCutts)
+    '/Users/felipeantoniomendezsalcido/Desktop/MEAs/spike_times/CA3_KO_male_170218_merged_sp.txt')
+
+graph_edges = []
+for ii in ex_exp.list_units:
 
 
-def sttc(spiketrain_1, spiketrain_2, dt=0.005 * s):
-    ''' Calculates the Spike Time Tiling Coefficient as described in (Cutss & Eglen, 2014) following Cutts' implementation in C (https://github.com/CCutts/Detecting_pairwise_correlations_in_spike_trains/blob/master/spike_time_tiling_coefficient.c)'''
+def sttc(spiketrain_1, spiketrain_2, dt=0.01 * s):
+    ''' Calculates the Spike Time Tiling Coefficient as described in (Cutts & Eglen, 2014) following Cutts' implementation in C (https://github.com/CCutts/Detecting_pairwise_correlations_in_spike_trains/blob/master/spike_time_tiling_coefficient.c)'''
 
     def run_P(spiketrain_1, spiketrain_2, N1, N2, dt):
         '''Check every spike in train 1 to see if there's a spike in train 2 within dt.'''
@@ -102,7 +100,7 @@ def sttc(spiketrain_1, spiketrain_2, dt=0.005 * s):
             if (spiketrain.t_stop - spiketrain[N - 1]) < dt:
                 time_A = time_A - spiketrain[-1] - dt + spiketrain.t_stop
 
-            T = (time_A / spiketrain.t_stop).item()
+            T = (time_A / (spiketrain.t_stop - spiketrain.t_start)).item()
             return T
 
     N1 = len(spiketrain_1)
@@ -121,52 +119,39 @@ def sttc(spiketrain_1, spiketrain_2, dt=0.005 * s):
     return index
 
 
-os.chdir('/Users/felipeantoniomendezsalcido/Desktop/MEAs/data_files')
+os.chdir('/Users/felipeantoniomendezsalcido/Desktop/MEAs/spike_times')
 # Exploratory dataframe for an experiment
 list_files = os.listdir()
-stats_dic = {'Date': [], 'Gen_type': [], 'Sex': [], 'FR_Bs': [], 'FR_TBS': [],
-             'FR_TBS-30': [], 'FR_TBS-60': [], 'CV2': [], 'Fano_fact': []}
+list_files = list_files[1:]
+len(list_files)
+list_files
+
+stats_dic = {'Date': [], 'Gen_type': [], 'Sex': [],
+             'Channel': [], 'Unit': [], 'FR_Bs': [], 'CV2': []}
+
 for ii in list_files:
     data_file = os.getcwd() + '/' + ii
     name_keys = ii.split(sep='_')
-    data_block = build_block(data_file)
-
+    data_block = build_block(ii)
     for unit in data_block.list_units:
         stats_dic['Date'].append(name_keys[3])
         stats_dic['Gen_type'].append(name_keys[1])
         stats_dic['Sex'].append(name_keys[2])
-        stats_dic['FR_Bs'].append(est.mean_firing_rate(unit.spiketrains[0]).item())
-        stats_dic['FR_TBS'].append(est.mean_firing_rate(unit.spiketrains[1]).item())
-        stats_dic['FR_TBS-30'].append(est.mean_firing_rate(unit.spiketrains[2]).item())
-        stats_dic['FR_TBS-60'].append(est.mean_firing_rate(unit.spiketrains[3]).item())
-        intervals = est.isi(unit.spiketrains[0])
-        stats_dic['CV2'].append(est.cv(intervals))
-        stats_dic['Fano_fact'].append(est.fanofactor(unit.spiketrains))
-
+        stats_dic['FR_Bs'].append(elp.statistics.mean_firing_rate(unit.spiketrains[0]).item())
+        stats_dic['Channel'].append(unit.name[0])
+        stats_dic['Unit'].append(unit.name[1])
+        intervals = elp.statistics.isi(unit.spiketrains[0])
+        stats_dic['CV2'].append(elp.statistics.cv(intervals))
 
 build_df = pd.DataFrame(stats_dic)
-new_ord = ['Date', 'Sex', 'Gen_type', 'CV2', 'FR_Bs',
-           'FR_TBS', 'FR_TBS-30', 'FR_TBS-60', 'Fano_fact']
+new_ord = ['Date', 'Sex', 'Gen_type', 'Channel', 'Unit', 'FR_Bs', 'CV2']
 ordered_df = build_df[new_ord]
-ordered_df['Fano_fact']
 
-ordered_df['FR_Bs'][0].
-plt.figure(figsize=(10, 10))
-sns.pairplot(data=ordered_df, hue='Gen_type', vars=['FR_Bs', 'CV2', 'Fano_fact'])
-plt.show()
+ordered_df
+ordered_df
+os.chdir('/Users/felipeantoniomendezsalcido/Desktop/MEAs')
+ordered_df.to_csv('/Users/felipeantoniomendezsalcido/Desktop/MEAs/pooled_data', index=False)
 
-plt.figure(figsize=(10, 10))
-sns.stripplot(x='Gen_type', y='FR_Bs', hue='Sex', data=ordered_df, jitter=True)
-plt.show()
-
-
-# Now, characterize them
-# What are the most useful statistics to describe a spike train?
-# Firing rate, brust/regular, cv, network spikes, spikes in burst, burst rate
-
-sns.stripplot(exp_df['Firing_Rate'])
-plt.xticks(range(21))
-plt.show()
 
 # Build the crosscorrelation matrix according to Eggermont
 binned_trains = [BinnedSpikeTrain(ii, binsize=0.001 * s) for ii in ex_exp.segments[0].spiketrains]
@@ -181,25 +166,7 @@ for ii in range(egg_mat_size):
         cch_try = sp_cor.cch(few_trains[ii], few_trains[jj], cross_corr_coef=True)
         egg_mat[ii, jj] = max(cch_try)
 
-egg_mat
-bin_mat = binned_trains.to_array()
-bin_mat.shape
-lim = bin_mat.shape[1]
-lim
-sim_mat = np.zeros(shape=(lim, lim))
-for i in range(lim):
-    for j in range(lim):
-        a = bin_mat[:, i]
-        b = bin_mat[:, j]
-        n_a = np.linalg.norm(a)
-        n_b = np.linalg.norm(b)
-        sim = (np.dot(a, b) / (np.dot(n_a, n_b)))
-        sim_mat[i, j] = sim
-
-plt.figure(figsize=(15, 10))
-sns.heatmap(sim_mat)
-plt.show()
-
+# Pearson's Correlation Matrix
 cc_mat = corrcoef(binned_trains)
 np.fill_diagonal(cc_mat, 0)
 
@@ -212,8 +179,6 @@ plt.show()
 # Raster Plots
 plt.figure(figsize=(30, 30))
 plt.eventplot(n_block.segments[0].spiketrains, color='k', linelengths=0.5)
-# plt.eventplot(exp_block.segments[1].spiketrains, color='k')
-# plt.eventplot(exp_block.segments[2].spiketrains, color='k')
 plt.xlabel('Seconds')
 plt.ylabel('Cell')
 plt.yticks(range(len(n_block.segments[0].spiketrains)))
@@ -221,10 +186,140 @@ plt.show()
 
 # Network Spikes
 time_hit = est.time_histogram(n_block.segments[0].spiketrains, binsize=0.005 * sec)
-
-
 plt.figure(figsize=(18, 5))
 plt.plot(time_hit, color='k')
 plt.ylabel('# active cells')
 plt.xlabel('Seconds')
 plt.show()
+
+# for ii in list_files:
+data_file = list_files[19]
+data_file
+name_keys = data_file.split(sep='_')
+data_block = build_block(data_file)
+len(data_block.list_units)
+# STTC calculations, remeber you did it under the diagonal
+# That is N*N - N % 2
+#%%
+STTC_dic = {'Date': [], 'Gen_type': [], 'Sex': [], 'Node_1': [], 'Node_2': [], 'STTC_weight': []}
+#names_right = {'Node_1' : [], 'Node_2' : []}
+for jj in range(len(data_block.list_units)):
+    unit1 = data_block.list_units[jj]
+    for kk in range(jj):
+        unit2 = data_block.list_units[kk]
+        STTC_dic['Date'].append(name_keys[3])
+        STTC_dic['Gen_type'].append(name_keys[1])
+        STTC_dic['Sex'].append(name_keys[2])
+        unit1_name = 'Ch{},U{}'.format(unit1.name[0][-2:], unit1.name[1])
+        STTC_dic['Node_1'].append(unit1_name)
+        unit2_name = 'Ch{},U{}'.format(unit2.name[0][-2:], unit2.name[1])
+        STTC_dic['Node_2'].append(unit2_name)
+        STTC_dic['STTC_weight'].append(sttc(unit1.spiketrains[0], unit2.spiketrains[0]))
+STTC_df = pd.DataFrame(STTC_dic)
+#%%
+len(data_block.list_units)
+len(STTC_dic['STTC_weight'])
+STTC_df.to_csv(data_file.split('.')[0] + 'STTC')
+
+mat_size = len(data_block.list_units)
+#%%
+sttc_mat = np.empty((mat_size, mat_size))
+sttc_mat[:] = np.nan
+count = 0
+for ii in range(mat_size):
+    for jj in range(ii):
+        sttc_mat[ii, jj] = STTC_df['STTC_weight'][count]
+        count += 1
+count
+#%%
+STTC_df['Node_2'].unique()
+STTC_df['Node_1'].unique()
+names_ag = [ii for ii in STTC_df['Node_2'].unique()]
+STTC_df['Node_1'].iloc[-1]
+names_ag.append(STTC_df['Node_1'].iloc[-1])
+len(names_ag)
+sttc_round = np.around(sttc_mat, decimals=2)
+#%%
+mat_fig = plt.figure(figsize=(14, 14))
+sns.heatmap(sttc_round, center=0, cmap='seismic', cbar_kws={
+            'shrink': .8}, yticklabels=names_ag, xticklabels=names_ag, square=True)
+plt.title(data_file)
+plt.ylabel('Units')
+plt.xlabel('Units')
+plt.show()
+#%%
+mat_fig.savefig(data_file.split('.')[0] + '_fig.svg')
+data_file.split('.')[0]
+# Stupid demonstration of half matrix creation
+# Remeber this shit man, you don't want to do it yet again
+bs = []
+bs_c = 0
+for ii in range(10):
+    for jj in range(ii):
+        bs.append(bs_c)
+        bs_c += 1
+bs
+
+len(names_df['Node_2.0'].unique())
+mat_mean = np.nanmean(sttc_mat)
+mat_std = np.nanstd(sttc_mat)
+
+trld = mat_mean + (1 * mat_std)
+trld
+sttc_round = np.around(sttc_mat, decimals=2)
+len(sttc_round[sttc_round > 0])
+
+
+plt.figure(figsize=(10, 10))
+sns.heatmap(sttc_round, center=0, cmap='seismic', cbar_kws={'shrink': .8})
+plt.show()
+
+plt.figure(figsize=(10, 10))
+sns.distplot(sttc_mat[~np.isnan(sttc_mat)])
+plt.show()
+
+
+sttc_mat = np.reshape(sttc_mat, (63, 63))
+np.fill_diagonal(sttc_mat, 0)
+eg_5ms = plt.figure(figsize=(12, 12))
+sns.heatmap(sttc_mat, cmap='seismic', center=0, square=True, cbar_kws={'shrink': 0.80})
+plt.ylabel('Cells')
+plt.xlabel('Cells')
+plt.show()
+eg_5ms.savefig('example_experiment_5ms')
+
+sns.heatmap()
+
+
+len(ex_exp.segments[0].spiketrains)
+sttc_mat_1ms = np.empty((63, 63))
+for ii in range(63):
+    for jj in range(63):
+        sttc_mat_1ms[ii, jj] = sttc(ex_exp.segments[0].spiketrains[ii],
+                                    ex_exp.segments[0].spiketrains[jj], dt=0.001 * s)
+
+ddt = [0.001, 0.003, 0.005, 0.01, 0.03, 0.05, 0.1, 0.3, 0.5, 1]  # windows to test
+len(ddt)
+trains_test = [ii for ii in ex_exp.segments[0].spiketrains[0:10]]  # trains to test
+
+sttc_test = []
+
+for ii in ddt:
+    dt = ii * s
+    sttc_val = []
+    for jj in trains_test:
+        sttc_val.append(sttc(trains_test[1], jj, dt=dt))
+        sttc_test.append(sttc_val)
+sttc_test
+df = pd.DataFrame(sttc_test)
+df = df.drop_duplicates()
+df.index = ddt
+window_test = plt.figure(figsize=(13, 10))
+for col in df:
+    plt.semilogx(df[col], 'o-')
+plt.xticks(ddt)
+plt.xlabel('Synchronicity window in log10[1 Seg]')
+plt.ylabel('Spike Time Tiling Coefficient')
+plt.show()
+
+window_test.savefig('Synchronicity Window test')
