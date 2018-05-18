@@ -193,7 +193,8 @@ plt.xlabel('Seconds')
 plt.show()
 
 # for ii in list_files:
-data_file = list_files[19]
+list_files
+data_file = list_files[20]
 data_file
 name_keys = data_file.split(sep='_')
 data_block = build_block(data_file)
