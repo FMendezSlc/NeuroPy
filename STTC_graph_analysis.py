@@ -8,6 +8,7 @@ import seaborn as sns
 import networkx as nx
 import os
 from scipy import stats
+from scipy import polyfit
 
 
 def build_block(data_file):
@@ -31,7 +32,8 @@ def build_block(data_file):
     for name, group in ord_times:
         time_stamps = ord_times.get_group(name).values
         inter = 600  # Number of seconds in 10 minutes
-        first_seg = neo.SpikeTrain(time_stamps[time_stamps < inter], units='sec', t_stop=inter)
+        first_seg = neo.SpikeTrain(
+            time_stamps[time_stamps < inter], units='sec', t_start=0,  t_stop=inter)
         new_block.segments[0].spiketrains.append(first_seg)
         new_unit = neo.Unit(name=name)
         sptrs = [first_seg]
@@ -49,7 +51,7 @@ def build_block(data_file):
     return new_block
 
 
-def sttc(spiketrain_1, spiketrain_2, dt=0.01 * s):
+def sttc(spiketrain_1, spiketrain_2, dt=0.005 * s):
     ''' Calculates the Spike Time Tiling Coefficient as described in (Cutts & Eglen, 2014) following Cutts' implementation in C (https://github.com/CCutts/Detecting_pairwise_correlations_in_spike_trains/blob/master/spike_time_tiling_coefficient.c)'''
 
     def run_P(spiketrain_1, spiketrain_2, N1, N2, dt):
@@ -112,7 +114,7 @@ def sttc(spiketrain_1, spiketrain_2, dt=0.01 * s):
     return index
 
 
-def sttc_g(sttc_file):
+def sttc_g(sttc_file, threshold=2, all_nodes=True, exclude_shadows=True):
     ''' [csv -> nx.Graph]
     Builds an empty nx.Graph and fills it with edges from a csv read as a pandas DataFrame. '''
 
@@ -121,10 +123,11 @@ def sttc_g(sttc_file):
     nodes = [ii for ii in sttc_df['Node_2'].unique()]
     nodes.append(sttc_df['Node_1'].iloc[-1])
     sttc_graph = nx.Graph()
-    sttc_graph.add_nodes_from(nodes)
-    median = np.median(abs(sttc_df['STTC_weight']))
+    if all_nodes == True:
+        sttc_graph.add_nodes_from(nodes)
+    median = np.median(sttc_df['STTC_weight'])
     mad = np.median(abs(sttc_df['STTC_weight'] - median)) / 0.6745
-    thr = mad * 2
+    thr = mad * threshold
     for i, nrow in sttc_df.iterrows():
         if nrow[4] < (median + thr) and nrow[4] > (median - thr):
             pass
@@ -136,12 +139,104 @@ def sttc_g(sttc_file):
 
 
 os.chdir('/Users/felipeantoniomendezsalcido/Desktop/MEAs/spike_times')
+spiketrains = os.listdir()[1:]
+test_block = build_block(spiketrains[0])
+test_block.list_units[26].spiketrains[0].size
+test_train1 = test_block.list_units[2].spiketrains[0]
+test_train2 = test_block.list_units[7].spiketrains[0]
+
+a_test = segmented_train(test_train1)
+b_test = segmented_train(test_train2)
+a_test[-1]
+sttc(a_test, b_test)
+sttc(test_train1, test_train2)
+
+
+def segmented_train(spiketrain, t_start=(150 * s), t_stop=(450 * s)):
+    for index, item in enumerate(spiketrain):
+        if item >= t_start:
+            if item < t_stop:
+                start_index = index
+                break
+            else:
+                print('Empty Train')
+                break
+    for index, item in enumerate(spiketrain):
+        if item > t_stop:
+            stop_index = index - 1
+            break
+    segmented_train = neo.SpikeTrain(
+        spiketrain[start_index:stop_index], t_start=t_start, t_stop=t_stop)
+    return segmented_train
+
+
+def surrogated_corr(spiketrain1, spiketrain2, boot_samples=5):
+    boots_sttc = []
+    for ii in range(boot_samples):
+        shift = np.random.random(1)
+        surrogated = elp.spike_train_surrogates.dither_spike_train(spiketrain2, shift=shift * s)[0]
+        boots_sttc.append(sttc(spiketrain1, surrogated))
+    return boots_sttc
+
+
+segmented_train(test_train1, t_start=t_start, t_stop=t_stop)
+surr = np.random.choice(surrogated_corr(test_train1, test_train2), size=(1000, 10))
+surr
+debug_block = build_block(spiketrains[0])
+segmented_train(debug_block.list_units[26].spiketrains[0], t_start=(120 * s), t_stop=(240 * s))
+
+
+for index, item in enumerate(debug_block.list_units[26].spiketrains[0]):
+    print(index, item)
+
+surr
+np.mean(np.mean(surr, axis=1))
+np.mean(np.std(surr, axis=1))
+boot_mean + 3 * boot_std
+
+spiketrains
+
+np.random.random(5)
+sttc(test_train1, test_train2)
+
+# Create bootstrapped adjacency matrices
+spiketrains
+files_count = 1
+for ii in spiketrains:
+    print('Working on {}'.format(ii))
+    new_block = build_block(ii)
+
+    STTCboots_dic = {'Node_1': [], 'Node_2': [], 'STTCboot_mean': [], 'STTCboot_std': []}
+
+    for jj in range(len(new_block.list_units)):
+        unit1 = new_block.list_units[jj]
+        for kk in range(jj):
+            unit2 = new_block.list_units[kk]
+            print('On trains: {}, {}'.format(unit1.name, unit2.name))
+            unit1_name = 'Ch{},U{}'.format(unit1.name[0][-2:], unit1.name[1])
+            STTCboots_dic['Node_1'].append(unit1_name)
+            unit2_name = 'Ch{},U{}'.format(unit2.name[0][-2:], unit2.name[1])
+            STTCboots_dic['Node_2'].append(unit2_name)
+            surr = np.random.choice(surrogated_corr(
+                unit1.spiketrains[0], unit2.spiketrains[0]), size=(1000, 5))
+            boot_mean = np.mean(np.mean(surr, axis=1))
+            boot_std = np.mean(np.std(surr, axis=1))
+            print(boot_mean, boot_std)
+            STTCboots_dic['STTCboot_mean'].append(boot_mean)
+            STTCboots_dic['STTCboot_std'].append(boot_std)
+    STTCboots_df = pd.DataFrame(STTCboots_dic)
+    STTCboots_df.to_csv(ii.rsplit('_', 2)[0] + '_STTCboots')
+    print('Done with {}/27 files'.format(files_count))
+    files_count += 1
+
+spiketrains[0].list_units
 
 list_files
 data_file = list_files[20]
 data_file
 name_keys = data_file.split(sep='_')
-data_block = build_block(data_file)
+test_block = build_block()
+data_block.list_units[0].name
 len(data_block.list_units)
 # STTC calculations, remeber you did it under the diagonal
 # That is (N * N-1) % 2
@@ -164,6 +259,7 @@ STTC_df = pd.DataFrame(STTC_dic)
 STTC_df.to_csv(data_file.split('.')[0] + 'STTC')
 #%%
 
+# Transform STTC values to Adjacency Matrix
 #%%
 mat_size = len(data_block.list_units)
 sttc_mat = np.empty((mat_size, mat_size))
@@ -196,9 +292,9 @@ os.chdir('/Users/felipeantoniomendezsalcido/Desktop/MEAs/STTC_data')
 os.listdir()
 sttc_list = os.listdir()[:-2]
 sttc_list
+
 pd.read_csv(sttc_list[0])
-float(nx.info(sttc_graph).split('\n')[4].split(' ')[-1])
-round(sum([ii for ii in nx.get_edge_attributes(sttc_graph, 'weight').values() if ii > 0]), 2)
+
 
 # Populate a DataFrame with pooled data of general stats from all graphs
 #%%
@@ -212,7 +308,7 @@ for ii in sttc_list:
     graph_dic['Sex'].append(name_keys[2])
     sttc_df = pd.read_csv(ii).drop(columns=['Unnamed: 0'])
     sttc_df['STTC_weight'] = sttc_df['STTC_weight'].round(2)
-    sttc_graph = sttc_g(ii)
+    sttc_graph = sttc_g(ii, threshold=2)
 
     graph_dic['Nx_Degree'].append(int(nx.info(sttc_graph).split('\n')[2].split(' ')[-1]))
     graph_dic['Edges'].append(int(nx.info(sttc_graph).split('\n')[3].split(' ')[-1]))
@@ -236,9 +332,10 @@ nx_df = nx_df[new_ord]
 #%%
 
 nx_df
-aa = dict(nx.degree(sttc_graph, weight='weight'))
-aa = round(np.mean([ii for ii in aa.values()]), 2)
-aa
+print(round(np.mean(nx_df[nx_df['Gen_type'] == 'KO']['Neg_w']), 2),
+      round((stats.sem(nx_df[nx_df['Gen_type'] == 'KO']['Neg_w'])), 2))
+deg = nx_df[nx_df['Gen_type'] == 'WT']['Nx_Degree']
+den = nx_df[nx_df['Gen_type'] == 'WT']['Nx_Density']
 #%%
 # Nx Density
 with sns.axes_style('whitegrid'):
@@ -252,10 +349,19 @@ with sns.axes_style('whitegrid'):
     plt.ylabel('Densidad de Conexión', fontsize=16)
     plt.tick_params(labelsize=14)
 #%%
+#%%
+with sns.axes_style('whitegrid'):
+    sns.lmplot(x='Nx_Degree', y='Nx_Density', hue='Gen_type', data=nx_df, palette='deep', size=8)
+    sns.despine()
+#%%
+den
+plt.plot(deg, den)
+den = np.arange(0, 10)
+deg = np.arange(0, 10)
 ko_density = nx_df[nx_df['Gen_type'] == 'KO']['Nx_Density']
 wt_density = nx_df[nx_df['Gen_type'] == 'WT']['Nx_Density']
 stats.ttest_ind(ko_density, wt_density)
-stats.normaltest(wt_density)
+stats.normaltest(ko_density)
 
 #%%
 # Av Degree
@@ -270,6 +376,14 @@ with sns.axes_style('whitegrid'):
     plt.ylabel('Grado Promedio por Nodo', fontsize=16)
     plt.tick_params(labelsize=14)
 #%%
+
+#%%
+with sns.axes_style('whitegrid'):
+    sns.lmplot(x='Nx_Degree', y='Edges', hue='Gen_type',
+               data=nx_df, palette='deep', size=8, legend_out=False)
+    sns.despine()
+#%%
+
 #%%
 # Total Weight
 with sns.axes_style('whitegrid'):
@@ -283,6 +397,13 @@ with sns.axes_style('whitegrid'):
     plt.ylabel('Fuerza Total', fontsize=16)
     plt.tick_params(labelsize=14)
 #%%
+
+with sns.axes_style('whitegrid'):
+    sns.lmplot(x='Nx_Degree', y='Total_Weight', hue='Gen_type',
+               data=nx_df, palette='deep', size=8, legend_out=False)
+    sns.despine()
+
+
 #%%
 # Positive Weights
 with sns.axes_style('whitegrid'):
@@ -309,6 +430,10 @@ with sns.axes_style('whitegrid'):
     plt.ylabel('STTC Promedio', fontsize=16)
     plt.tick_params(labelsize=14)
 #%%
+ko_avweight = nx_df[nx_df['Gen_type'] == 'KO']['Av_weight']
+wt_avweight = nx_df[nx_df['Gen_type'] == 'WT']['Av_weight']
+stats.ttest_ind(ko_avweight, wt_avweight)
+
 #%%
 # Av Node Strength
 with sns.axes_style('whitegrid'):
@@ -329,29 +454,29 @@ stats.normaltest(wt_nstrength)
 stats.normaltest(ko_nstrength)
 ko_nstrength.max()
 
-tests_wt = sttc_list[11]
-ko_g = sttc_g(sttc_list[19])
-nx.info(ko_g)
-wt_g = sttc_g(sttc_list[19])
+with sns.axes_style('whitegrid'):
+    sns.lmplot(x='Nx_Degree', y='Av_node_strength', hue='Gen_type',
+               data=nx_df, palette='deep', size=8, legend_out=False)
+    sns.despine()
 
-abs(sttc_df['STTC_weight']).median() + np.median(abs(sttc_df['STTC_weight'].round(2) -
-                                                     np.median(sttc_df['STTC_weight'].round(2)))) / 0.674 * 2
-sttc_df[sttc_df['STTC_weight'] >= 0.02]['STTC_weight'].sum()
-sttc_df = pd.read_csv(tests_wt).drop(columns=['Unnamed: 0'])
-sttc_df['STTC_weight'] = sttc_df['STTC_weight'].round(2)
-sttc_graph = nx.Graph()
-sttc_df['STTC_weight'].std()
-mad
-post_th = sttc_df[sttc_df['STTC_weight'] >= 0]['STTC_weight'].quantile(0.75)
-post_th
-neg_th = sttc_df[sttc_df['STTC_weight'] <= 0]['STTC_weight'].quantile(0.25)
-neg_th
-for i, nrow in sttc_df.iterrows():
-    if nrow[4] < post_th and nrow[4] > neg_th:
-        # if nrow[4] == 0:
-        pass
-    else:
-        sttc_graph.add_edge(nrow[2], nrow[3], weight=nrow[4])
+
+#%%
+with sns.axes_style('whitegrid'):
+    edges_num = plt.figure(figsize=(8, 8))
+    sns.stripplot(x='Gen_type', y='Edges', data=nx_df, jitter=0.05,
+                  edgecolor='gray', linewidth=1, size=6.5, palette='deep', order=['WT', 'KO'])
+    sns.boxplot(x='Gen_type', y='Edges', data=nx_df, order=[
+                'WT', 'KO'], saturation=1, width=0.3, palette='deep', linewidth=2.5)
+    sns.despine()
+    plt.xlabel('Genotipo', fontsize=16)
+    plt.ylabel('Número de Ejes', fontsize=16)
+    plt.tick_params(labelsize=14)
+#%%
+
+
+ko_edges = nx_df[nx_df['Gen_type'] == 'KO']['Edges']
+wt_edges = nx_df[nx_df['Gen_type'] == 'WT']['Edges']
+stats.ttest_ind(wt_edges, ko_edges)
 
 nx.info(sttc_graph)
 nx.draw_circular(sttc_graph)
@@ -363,56 +488,10 @@ nx_df['Av_weight'].mad()
 help(nx_df.mad())
 nx.info(wt_g)
 
-wt_df = pd.read_csv(sttc_list[19]).drop(columns=['Unnamed: 0'])
-wt_mean = wt_df['STTC_weight'].mean()
-wt_df['STTC_weight'].median()
-wt_std = wt_df['STTC_weight'].std()
-wt_mean + (2 * wt_std)
-wt_std
-wt_mean
-degs = {}
-for n in wt_g.nodes():
-    deg = wt_g.degree(n)
-    if deg not in degs:
-        degs[deg] = 0
-    degs[deg] += 1
-items = sorted(degs . items())
-#%%
-fig = plt . figure()
-ax = fig . add_subplot(111)
-ax.hist([v for (k, v) in items])
-#plt.xscale( 'linear')
-#plt.yscale( 'linear')
-plt. title("Degree Distribution ")
-#%%
-[wt_g.degree(ii) for ii in wt_g.nodes()]
-
-degs.keys()
-
-[v for k, v in ii[2].items() for ii in list(wt_g.edges(data=True))]
-[v for k, v in ii[2].items() for ii in list(wt_g.edges(data=True))]
-weights = []
-for ii in list(wt_g.edges(data=True)):
-    weights.append([v for k, v in ii[2].items()])
-
-len(weights)
-np.mean(weights)
-np.std(weights)
-np.median(weights)
-plt.hist(weights, bins=10)
-weights
-
-
-[k for (k, v) in items]
-[v for (k, v) in items]
-#%%
-plt.figure()
-a = np.logspace(0, 100)
-plt.plot(a, a)
-plt.xscale('linear')
-plt.yscale('log')
-#%%
-
+ttest = sttc_list[12]
+ttest_g = sttc_g(ttest, threshold=1, all_nodes=False)
+nx.info(ttest_g)
+ttest_g.degre()
 # Plotting graph
 #%%
 c_map = []
@@ -425,20 +504,141 @@ for node in sttc_graph:
         c_map.append('b')
 #%%
 #%%
-plt.figure(figsize=(14, 14))
-nx.draw_circular(sttc_graph, with_labels=False, node_color=c_map,
+MAD_test = plt.figure(figsize=(10, 10))
+nx.draw_circular(ttest_g, with_labels=False,
                  node_size=350, alpha=.9, linewidths=.5, style='dotted')
+plt.text(-1.1, -1.1, 'Nodos (N): 50\nEjes: 429\nConectividad: {}\nGrado promedio (k): 17.16'.format(
+    round(nx.density(ttest_g), 2)), fontsize=16)
 plt.show()
+# MAD_test.savefig('MAD1.png')
 #%%
+
 
 #%%
 plt.figure(figsize=(16, 16))
 plt.hist([ii[1] for ii in list(nx.degree(sttc_graph))])
 #%%
-[ii for ii in list(nx.nodes(sttc_g))]
-list(nx.degree(sttc_graph))
 
-for node in sttc_graph:
-    print(node)
+sttc_list
+ko_66 = sttc_list[10]
+wt_66 = sttc_list[19]
+wt_66
+ko_66
+ko66_g = sttc_g(ko_66)
+nx.info(ko66_g)
+ko_degs = [jj for jj in [int(ii) for ii in dict(nx.degree(ko66_g)).values()]]
 
-nx.info(sttc_graph).split('\n')
+wt_g = sttc_g(wt_66)
+wt_degs = [jj for jj in [int(ii) for ii in dict(nx.degree(wt_g)).values()]]
+
+hist_val, hist_bins = np.histogram((wt_degs + ko_degs), bins='auto')
+wt_values, wt_h = np.histogram(wt_degs, bins=hist_bins)
+ko_values, ko_h = np.histogram(ko_degs, bins=hist_bins)
+
+wt_values = wt_values / len(wt_g.nodes())
+ko_values = ko_values / len(ko66_g.nodes())
+wt_values
+log_wt = np.log(wt_values + 1)
+logko = np.log(ko_values + 1)
+wt_values
+ko_values
+log_wt
+hist_bins[:-1]
+
+w_slope, w_intercept, wr_value, p_value, std_err = stats.linregress(
+    np.log(hist_bins[:-1] + 1), np.log(wt_values + 1))
+xfid = np.linspace(0, 3.7)     # This is just a set of x to plot the straight
+k_slope, k_intercept, kr_value, p_value, std_err = stats.linregress(
+    np.log(hist_bins[:-1] + 1), np.log(ko_values + 1))
+
+wr_value**2
+kr_value**2
+nx.degree(wt_g)
+# Draw graphs
+#%%
+ko_circ = plt.figure(figsize=(8, 8))
+nx.draw_circular(ko66_g, node_color='g', node_size=100, style='dotted', width=.7)
+plt.title('KO', fontsize=14)
+plt.text(-1.1, -1.1, 'Densidad: {}'.format(
+    round(nx.density(ko66_g), 2)) + '\n' + nx.info(ko66_g), fontsize=12)
+#%%
+ko_circ.savefig('KO graph.svg')
+
+#%%
+wt_circ = plt.figure(figsize=(8, 8))
+nx.draw_circular(wt_g, node_color='b', node_size=100, style='dotted', width=.7)
+plt.title('WT', fontsize=14)
+plt.text(-1.1, -1.1, 'Densidad: {}'.format(
+    round(nx.density(wt_g), 2)) + '\n' + nx.info(wt_g), fontsize=12)
+#%%
+wt_circ.savefig('WT graph.svg')
+
+# Plot log log to approxiamte a power law fit
+#%%
+pow_law = plt.figure(figsize=(10, 6))
+plt.plot(np.log(hist_bins[:-1] + 1), log_wt, 'bo', label='WT')
+plt.plot(np.log(hist_bins[:-1] + 1), logko, 'go', label='KO')
+plt.plot(xfid, xfid * w_slope + w_intercept, 'b-',
+         label='$\mathit{R}^2$' + ' > {}'.format(round(wr_value**2, 1)))
+plt.plot(xfid, xfid * k_slope + k_intercept, 'g-',
+         label='$\mathit{R}^2$' + ' > {}'.format(round(kr_value**2, 1)))
+plt.xlabel('log(k)', fontsize=14)
+plt.ylabel('log(Proporción de Nodos)', fontsize=14)
+plt.legend()
+#%%
+pow_law.savefig('power law approximation.svg')
+
+hist_bins
+hist_val
+
+pow_dict = {'bins': hist_bins[1:], 'wt_values': wt_values, 'ko_values': ko_values}
+pow_df = pd.DataFrame(pow_dict)
+#%%
+with sns.axes_style('whitegrid'):
+    degree_hist = plt.figure(figsize=(6, 6))
+    sns.distplot(wt_degs, bins=hist_bins, kde=False, label='WT')
+    sns.distplot(ko_degs, bins=hist_bins, color='g', kde=False, label='KO')
+    plt.xlabel('k', fontsize=14)
+    plt.ylabel('Número de Nodos', fontsize=14)
+    plt.legend(fontsize=14)
+
+#%%
+degree_hist.savefig('Degree Histogram.svg')
+
+# Weight distribution Plot
+raw_ko = pd.read_csv(ko_66).drop(columns=['Unnamed: 0'])
+ko_median = np.median(raw_ko['STTC_weight'])
+ko_mad = np.median(abs(raw_ko['STTC_weight'] - median)) / 0.6745
+ko_thr = ko_mad * 3
+ko_values = []
+for i, nrow in sttc_df.iterrows():
+    if nrow[4] < (ko_median + ko_thr) and nrow[4] > (ko_median - ko_thr):
+        pass
+    else:
+        ko_values.append(round(abs(nrow[4]), 2))
+raw_wt = pd.read_csv(wt_66).drop(columns=['Unnamed: 0'])
+
+
+mad_values
+
+#%%
+with sns.axes_style('whitegrid'):
+    weigths_hits = plt.figure(figsize=(8, 8))
+    sns.distplot(abs(raw_wt['STTC_weight']), norm_hist=True, label='WT')
+    sns.distplot(abs(raw_ko['STTC_weight']), norm_hist=True, kde=True, color='g', label='KO')
+    plt.xlabel('STTC', fontsize=14)
+    plt.ylabel('Frecuencia', fontsize=14)
+    plt.legend(fontsize=14)
+#%%
+weigths_hits.savefig('Raw_hist.svg')
+
+#%%
+with sns.axes_style('whitegrid'):
+    log_sttc = plt.figure(figsize=(8, 8))
+    sns.distplot(np.log(abs(raw_wt['STTC_weight'])), norm_hist=True, label='WT')
+    sns.distplot(np.log(abs(raw_ko['STTC_weight'])), norm_hist=True, color='g', label='KO')
+    plt.xlabel('log(STTC)', fontsize=14)
+    plt.ylabel('Densidad Normalizada', fontsize=14)
+    plt.legend(fontsize=14)
+#%%
+log_sttc.savefig('logweights_hist.svg')
