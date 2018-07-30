@@ -116,7 +116,7 @@ def sttc(spiketrain_1, spiketrain_2, dt=0.005 * s):
 
 def sttc_g(sttc_file, threshold=2, all_nodes=True, exclude_shadows=True):
     ''' [csv -> nx.Graph]
-    Builds an empty nx.Graph and fills it with edges from a csv read as a pandas DataFrame. '''
+    Builds an empty nx.Graph and fills it with edges from a csv containing STTC values read as a pandas DataFrame. '''
 
     sttc_df = pd.read_csv(sttc_file).drop(columns=['Unnamed: 0'])
     sttc_df['STTC_weight'] = sttc_df['STTC_weight']
@@ -138,9 +138,31 @@ def sttc_g(sttc_file, threshold=2, all_nodes=True, exclude_shadows=True):
     return sttc_graph
 
 
-os.chdir('/Users/felipeantoniomendezsalcido/Desktop/MEAs/spike_times')
+os.chdir('/Users/felipeantoniomendezsalcido/Desktop/MEAs/STTC_bootstrapped')
 spiketrains = os.listdir()[1:]
-test_block = build_block(spiketrains[0])
+spiketrains[9]
+sttc_mat = pd.read_csv(spiketrains[10]).drop(columns=['Unnamed: 0'])
+sttc_mat
+boots_mat = pd.read_csv(spiketrains[9]).drop(columns=['Unnamed: 0'])
+boots_mat
+
+#%%
+real_vs_boots = plt.figure(figsize=(20, 20))
+sns.distplot(sttc_mat['STTC_weight'])
+sns.distplot(boots_mat['STTCboot_mean'])
+plt.title('Real vs Bootstrapped STTC values')
+plt.xlabel('STTC')
+plt.ylabel('Normalized Density')
+plt.text(.2, 1, 'bootstrapped mean +/- 3 std = 0.0121\nreal STTC mean + mad = 0.0183', fontsize=14)
+real_vs_boots.savefig('real_vs_boots.svg')
+#%%
+
+np.std(boots_mat['STTCboot_mean'], ddof=1)
+np.mean(boots_mat['STTCboot_mean']) + 3 * (np.std(boots_mat['STTCboot_mean'], ddof=1))
+
+np.median(abs(sttc_mat['STTC_weight'] - median)) / 0.6745
+median = np.median(sttc_mat['STTC_weight'])
+np.median(sttc_mat['STTC_weight']) + median
 test_block.list_units[26].spiketrains[0].size
 test_train1 = test_block.list_units[2].spiketrains[0]
 test_train2 = test_block.list_units[7].spiketrains[0]
