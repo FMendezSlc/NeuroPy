@@ -56,7 +56,7 @@ graph_edges = []
 for ii in ex_exp.list_units:
 
 
-def sttc(spiketrain_1, spiketrain_2, dt=0.01 * s):
+def sttc(spiketrain_1, spiketrain_2, dt=0.005 * s):
     ''' Calculates the Spike Time Tiling Coefficient as described in (Cutts & Eglen, 2014) following Cutts' implementation in C (https://github.com/CCutts/Detecting_pairwise_correlations_in_spike_trains/blob/master/spike_time_tiling_coefficient.c)'''
 
     def run_P(spiketrain_1, spiketrain_2, N1, N2, dt):
@@ -137,10 +137,10 @@ for ii in list_files:
         stats_dic['Date'].append(name_keys[3])
         stats_dic['Gen_type'].append(name_keys[1])
         stats_dic['Sex'].append(name_keys[2])
-        stats_dic['FR_Bs'].append(elp.statistics.mean_firing_rate(unit.spiketrains[0]).item())
+        stats_dic['FR_Bs'].append(elp.statistics.mean_firing_rate(unit.spiketrains[1]).item())
         stats_dic['Channel'].append(unit.name[0])
         stats_dic['Unit'].append(unit.name[1])
-        intervals = elp.statistics.isi(unit.spiketrains[0])
+        intervals = elp.statistics.isi(unit.spiketrains[1])
         stats_dic['CV2'].append(elp.statistics.cv(intervals))
 
 build_df = pd.DataFrame(stats_dic)
@@ -200,7 +200,7 @@ name_keys = data_file.split(sep='_')
 data_block = build_block(data_file)
 len(data_block.list_units)
 # STTC calculations, remeber you did it under the diagonal
-# That is N*N - N % 2
+# That is N * (N-1) % 2
 #%%
 STTC_dic = {'Date': [], 'Gen_type': [], 'Sex': [], 'Node_1': [], 'Node_2': [], 'STTC_weight': []}
 #names_right = {'Node_1' : [], 'Node_2' : []}
