@@ -344,7 +344,7 @@ plt.show()
 mat_fig.savefig(data_file.split('.')[0] + '_fig.svg')
 #%%
 
-os.chdir('/Users/felipeantoniomendezsalcido/Desktop/MEAs/STTC_data')
+os.chdir('/Users/felipeantoniomendezsalcido/Desktop/MEAs/')
 os.listdir()
 sttc_list = os.listdir()[:-2]
 sttc_list
@@ -650,7 +650,7 @@ hist_val
 pow_dict = {'bins': hist_bins[1:], 'wt_values': wt_values, 'ko_values': ko_values}
 pow_df = pd.DataFrame(pow_dict)
 #%%
-with sns.2es_style('whitegrid'):
+with sns.set_style('whitegrid'):
     degree_hist = plt.figure(figsize=(6, 6))
     sns.distplot(wt_degs, bins=hist_bins, kde=False, label='WT')
     sns.distplot(ko_degs, bins=hist_bins, color='g', kde=False, label='KO')

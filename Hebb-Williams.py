@@ -157,52 +157,102 @@ np.log10((.1, .2, .5, .8, 1))
 
 
 # Hebb-Williams-Kesner Group
+# The good groups
 
-HWK_data = pd.read_csv('/Users/felipeantoniomendezsalcido/Desktop/HWK_1.csv')
+HWK_data = pd.read_csv('/Users/felipeantoniomendezsalcido/Desktop/Data/HWK_1.csv')
 
 HWK_data[HWK_data['Task Phase'] == 'Training_1']
-
+# get just the testing phases
 HWK_errors = HWK_data.drop(HWK_data[HWK_data['Task Phase'].str.contains(
     'Training')].index)  # remove training trials
 
-HWK_errors.loc[HWK_errors[HWK_errors['Trial'] <= 5].index, 'Block'] = 'First'
-HWK_errors.loc[HWK_errors[HWK_errors['Trial'] > 5].index,
-               'Block'] = 'Second'  # assigning blocks, not sure if best move
-
-
-HWK_errors = HWK_errors.groupby(['Gene_type', 'Sex', 'ID', 'Task Phase', 'Block'], as_index=False)[
-    'Error Count'].agg({'Error Sum': 'sum', 'Error mean': 'mean'})  # looks like it worked
-
-# let's add a comprenhensive block sequence
-new_blocks = np.r_[['D1_1', 'D1_2', 'D2_1', 'D2_2', 'D3_1', 'D3_2'] * 16]
-HWK_errors['Block'] = new_blocks  # nice!!
-
-# now a proper group vairable
-HWK_errors['Group'] = HWK_errors['Sex'].astype(str).str[0] + HWK_errors['Gene_type']  # nice!!
-
-HWK_errors['Subject'] = HWK_errors['Sex'].astype(str).str[0] + HWK_errors['ID']
 HWK_errors
+# Way better to get blocks
+for ii in HWK_errors['Task Phase'].unique():
+    HWK_errors.loc[(HWK_errors['Task Phase'] == ii) & (
+        HWK_errors['Trial'] <= 5), 'Block'] = f"D{ii.split('_')[-1]}_1"
+    HWK_errors.loc[(HWK_errors['Task Phase'] == ii) & (
+        HWK_errors['Trial'] > 5), 'Block'] = f"D{ii.split('_')[-1]}_2"
+
+HWK_err_gpd = HWK_errors.groupby(['Gene_type', 'Sex', 'ID', 'Task Phase', 'Block'], as_index=False)[
+    'Error Count'].agg({'Error Sum': 'sum', 'Error mean': 'mean'})  # looks like it worked
+HWK_err_gpd
+# now a proper group vairable
+HWK_err_gpd['Group'] = HWK_err_gpd['Sex'].astype(str).str[0] + HWK_err_gpd['Gene_type']  # nice!!
+
+HWK_err_gpd['Subject'] = HWK_err_gpd['Sex'].astype(str).str[0] + HWK_err_gpd['ID']
+HWK_err_gpd
 HWK_errors.to_csv('/Users/felipeantoniomendezsalcido/Desktop/HWK_tidy.csv')
+
+HWK_lat_gpd
+HWK_lat_gpd = HWK_errors.groupby(['Gene_type', 'Sex', 'ID', 'Task Phase', 'Block'], as_index=False)[
+    'Time elapsed'].agg({'Latency mean': 'mean'})
+HWK_lat_gpd['Group'] = HWK_err_gpd['Sex'].astype(str).str[0] + HWK_lat_gpd['Gene_type']  # nice!!
+
+HWK_lat_gpd['Subject'] = HWK_err_gpd['Sex'].astype(str).str[0] + HWK_lat_gpd['ID']
 
 # let's see if this works in a point plot
 #%%
-errSum = plt.figure(figsize=(9, 6))
-err_ax = sns.pointplot(x='Block', y='Error Sum', hue='Group', data=HWK_errors, kind='point', ci=68, capsize=.1, palette=[
-                       'g', 'g', 'b', 'b'], linestyles=['--', '-', '--', '-'], markers=['v', 'o', 'v', 'o'], errwidth=2, dodge=True)
+HW_figure,  (err_ax, lat_ax) = plt.subplots(nrows=2, figsize = (7, 5))
+sns.pointplot(x='Block', y='Error mean', hue='Group', hue_order=['FKO', 'MKO', 'FWT', 'MWT'], data=HWK_err_gpd, kind='point', scale = 0.8, ci=68, capsize=.1, palette=[
+                   'g', 'g', 'b', 'b'], linestyles=['--', '-', '--', '-'], markers=['v', 'o', 'v', 'o'], errwidth=2, dodge=True, ax = err_ax)
 sns.despine()
+err_ax.axvline(5, 0, 1, color = 'k', ls = '--')
+err_ax.text(0, 1, '*', fontsize = 14)
 leg_handles = err_ax.get_legend_handles_labels()[0]
-err_ax.legend(leg_handles, ['Fem_KO', 'Male_KO', 'Fem_WT', 'Male_WT'], title='Groups')
-plt.ylabel('Total Erros')
-plt.xlabel('Trial Block')
+err_ax.legend(leg_handles, ['Fem -/-', 'Male -/-', 'Fem +/+', 'Male +/+'], loc='upper center', bbox_to_anchor=(0.5, 1.05),
+          ncol=2, fancybox = True, shadow=False)
+err_ax.set_ylabel('Mean Errors')
+err_ax.set_xlabel('')
+
+sns.pointplot(x='Block', y='Latency mean', hue='Group', hue_order=['FKO', 'MKO', 'FWT', 'MWT'], data=HWK_lat_gpd, kind='point', scale = 0.8, ci=68, capsize=.1, palette=[
+                       'g', 'g', 'b', 'b'], linestyles=['--', '-', '--', '-'], markers=['v', 'o', 'v', 'o'], errwidth=2, dodge=True, ax = lat_ax)
+sns.despine()
+lat_ax.axvline(5, 0, 1, color = 'k', ls = '--')
+lat_ax.text(0, 8, '*', fontsize = 14)
+leg_handles = lat_ax.get_legend_handles_labels()[0]
+lat_ax.legend_.remove()
+lat_ax.set_ylabel('Mean Latency (s)')
+lat_ax.set_xlabel('Trial Block')
 #%%
+HW_figure.savefig('/Users/felipeantoniomendezsalcido/Desktop/PDCB pics/HWK_modified.png', dpi= 300)
 # OK all that worked
+HWK_err_gpd
+HWK_short = HWK_err_gpd.drop(HWK_err_gpd[HWK_err_gpd['Task Phase'].isin(['Testing_4', 'Testing_5'])].index)
+HWK_short
+HWK_short_lat = HWK_lat_gpd.drop(HWK_lat_gpd[HWK_lat_gpd['Task Phase'].isin(['Testing_4', 'Testing_5'])].index)
+#%%
+HW_figure,  (err_ax, lat_ax) = plt.subplots(nrows=2, figsize = (7, 5))
+sns.pointplot(x='Block', y='Error mean', hue='Group', hue_order=['FKO', 'MKO', 'FWT', 'MWT'], data=HWK_short, kind='point', scale = 0.8, ci=68, capsize=.1, palette=[
+                   'g', 'g', 'b', 'b'], linestyles=['--', '-', '--', '-'], markers=['v', 'o', 'v', 'o'], errwidth=2, dodge=True, ax = err_ax)
+sns.despine()
+plt.axvline(3, 0, 1)
+leg_handles = err_ax.get_legend_handles_labels()[0]
+err_ax.legend(leg_handles, ['Fem -/-', 'Male -/-', 'Fem +/+', 'Male +/+'], loc='upper center', bbox_to_anchor=(0.5, 1.05),
+          ncol=2, fancybox=True, shadow=True)
+err_ax.set_ylabel('Mean Errors')
+err_ax.set_xlabel('')
+
+sns.pointplot(x='Block', y='Latency mean', hue='Group', hue_order=['FKO', 'MKO', 'FWT', 'MWT'], data=HWK_short_lat, kind='point', scale = 0.8, ci=68, capsize=.1, palette=[
+                       'g', 'g', 'b', 'b'], linestyles=['--', '-', '--', '-'], markers=['v', 'o', 'v', 'o'], errwidth=2, dodge=True, ax = lat_ax)
+sns.despine()
+leg_handles = lat_ax.get_legend_handles_labels()[0]
+lat_ax.legend_.remove()
+lat_ax.set_ylabel('Mean Latency (s)')
+lat_ax.set_xlabel('Trial Block')
+#%%
 # Now pingouin ANOVA
+# pg.friedman(data = HWK_err_gpd, dv = 'Error mean', within = 'Block', subject = 'Subject')
+# pg.rm_anova(data=HWK_err_gpd, dv='Error mean', within=['Block', 'Group'],  subject='Subject', detailed = True)
+pg.mixed_anova(data=HWK_short, dv='Error mean', within='Block',
+               between='Group', subject='Subject')
 
-pg.mixed_anova(data=HWK_errors, dv='Error mean', within='Block', between='Group', subject='Subject')
 
-pg.pairwise_ttests(data=HWK_errors, dv='Error mean', within='Block', between='Group',
-                   subject='Subject', alpha=0.05, padjust='holm', return_desc=True)
+bonf = pg.pairwise_ttests(data=HWK_short, dv='Error mean', within='Block', between='Group', subject='Subject', alpha=0.05, padjust='holm', return_desc=True)
 
+bonf
+
+#
 # Kesner indexes with mean erros per block
 subjects = list(HWK_errors['Subject'].unique())
 index_dict = {'Sex': [], 'Genotype': [], 'Group': [],
@@ -314,7 +364,7 @@ plt.title('Promedio de Errores por Bloque', fontsize=12)
 Mean_err.savefig('/Users/felipeantoniomendezsalcido/Desktop/Errores_promedio.png')
 
 HWK_data
-
+# Latency Analysis
 HWK_latency = HWK_data.groupby(['Gene_type', 'Sex', 'ID', 'Task Phase', 'Block'])[
     'Time elapsed'].agg({'Latency': 'mean'})
 
@@ -360,7 +410,7 @@ Lat_err.savefig('/Users/felipeantoniomendezsalcido/Desktop/Latencia_error_correl
 
 # Open Field Analysis
 
-OF_data = pd.read_csv('/Users/felipeantoniomendezsalcido/Desktop/OF_summary_report.csv')
+OF_data = pd.read_csv('/Users/felipeantoniomendezsalcido/Desktop/Data/OF_summary_report.csv')
 
 OF_data['% Center'] = OF_data['Time in Zone (%) - Zone 6'] + OF_data['Time in Zone (%) - Zone 7'] + \
     OF_data['Time in Zone (%) - Zone 10'] + OF_data['Time in Zone (%) - Zone 11']
@@ -377,20 +427,19 @@ pg.anova(dv='Total Distance', between=['Gender', 'Genotype'],
          data=OF_data, detailed=True, export_filename='OFaov_distance')
 OFdist_tk = pg.pairwise_tukey(
     dv='Total Distance', between='Subject Group', data=OF_data, alpha=0.05)
-
+OFdist_tk
 pg.anova(dv='Zone Transition Number', between=[
          'Gender', 'Genotype'], data=OF_data, detailed=True, export_filename='OFaov_crosses')
 OFcross_tk = pg.pairwise_tukey(dv='Zone Transition Number',
                                between='Subject Group', data=OF_data, alpha=0.05)
-
+OFcross_tk
 pg.anova(dv='% Center', between=['Gender', 'Genotype'],
          data=OF_data, detailed=True, export_filename='OFaov_center')
 OFcenter_tk = pg.pairwise_tukey(dv='% Center', between='Subject Group', data=OF_data, alpha=0.05)
-
+OFcenter_tk
 pg.anova(dv='% Periphery', between=['Gender', 'Genotype'],
          data=OF_data, detailed=True, export_filename='OFaov_periphery')
 OFper_tk = pg.pairwise_tukey(dv='% Periphery', between='Subject Group', data=OF_data, alpha=0.05)
-
 OFper_tk
 #%%
 OF_plot = plt.figure(figsize=(8, 8))
@@ -419,6 +468,8 @@ center_ax.annotate('***', xy=(0.25, .83), xytext=(0.25, .81), xycoords='axes fra
                    va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=1.5, lengthB=.1', lw=2, color='black'))
 center_ax.annotate('**', xy=(0.75, .83), xytext=(0.75, .81), xycoords='axes fraction', fontsize=18, ha='center',
                    va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=1.5, lengthB=.1', lw=2, color='black'))
+center_ax.annotate('***', xy=(0.5, .75), xytext=(0.5, .73), xycoords='axes fraction', fontsize=18, ha='center',
+                   va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=2, lengthB=.1', lw=2, color='black'))
 plt.ylim(0, 25)
 plt.yticks(range(0, 25, 5))
 center_ax.get_legend().remove()
@@ -439,3 +490,32 @@ plt.tight_layout()
 #%%
 OF_plot.savefig('/Users/felipeantoniomendezsalcido/Desktop/OF_analysis.png')
 OF_data
+
+# Area Timm Analysis
+
+timm_df = pd.read_csv('/Users/felipeantoniomendezsalcido/Desktop/Data/Timm Area.csv')
+timm_df.columns
+timm_df['Group'] = timm_df['Subject'].astype('str').str[0:3]
+timm_df['Mean Area'][timm_df['Genotype'] == 'WT']
+pg.ttest(x=timm_df['Mean Area'][timm_df['Genotype'] == 'WT'],
+         y=timm_df['Mean Area'][timm_df['Genotype'] == 'KO'], paired=False)
+
+#%%
+timm_fig, (a0, a1) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [3, 1]}, figsize=(7, 3))
+timm_point = sns.pointplot(x='Level', y='Mean Area', hue='Genotype', data=timm_df, palette=[
+                           'b', 'g'], capsize=.05, scale = .7, errorwidth=.05, ci=68, ax=a0, label=['a', 'b'])
+a0.set_ylabel(r'Mean Area ($\mu$m$^2$)')
+a0.set_xlabel('from Bregma (mm)')
+a0.invert_xaxis()
+sns.despine()
+timm_point.get_legend().remove()
+timm_fig.legend(loc='upper right', bbox_to_anchor=(.29, .93), ncol=1)
+timm_total = sns.barplot(x='Genotype', y='Mean Area', data=timm_df,
+                         palette=['b', 'g'], ax=a1, ci=68, capsize=0.05, errwidth = 1.5)
+a1.set_ylabel(r'Mean Area ($\mu$m$^2$)')
+a1.annotate('***', xy=(0.5, .98), xytext=(0.5, .96), xycoords='axes fraction', fontsize=18, ha='center',
+            va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=1.5, lengthB=.2', lw=1, color='black'))
+#a1.set_ylim(0, 20000)
+plt.tight_layout()
+#%%
+timm_fig.savefig('/Users/felipeantoniomendezsalcido/Desktop/Timm_fig.png', dpi = 300)
