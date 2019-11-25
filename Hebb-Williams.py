@@ -193,48 +193,50 @@ HWK_lat_gpd['Subject'] = HWK_err_gpd['Sex'].astype(str).str[0] + HWK_lat_gpd['ID
 
 # let's see if this works in a point plot
 #%%
-HW_figure,  (err_ax, lat_ax) = plt.subplots(nrows=2, figsize = (7, 5))
-sns.pointplot(x='Block', y='Error mean', hue='Group', hue_order=['FKO', 'MKO', 'FWT', 'MWT'], data=HWK_err_gpd, kind='point', scale = 0.8, ci=68, capsize=.1, palette=[
-                   'g', 'g', 'b', 'b'], linestyles=['--', '-', '--', '-'], markers=['v', 'o', 'v', 'o'], errwidth=2, dodge=True, ax = err_ax)
+HW_figure,  (err_ax, lat_ax) = plt.subplots(nrows=2, figsize=(7, 5))
+sns.pointplot(x='Block', y='Error mean', hue='Group', hue_order=['FKO', 'MKO', 'FWT', 'MWT'], data=HWK_err_gpd, kind='point', scale=0.8, ci=68, capsize=.1, palette=[
+    'g', 'g', 'b', 'b'], linestyles=['--', '-', '--', '-'], markers=['v', 'o', 'v', 'o'], errwidth=2, dodge=True, ax=err_ax)
 sns.despine()
-err_ax.axvline(5, 0, 1, color = 'k', ls = '--')
-err_ax.text(0, 1, '*', fontsize = 14)
+err_ax.axvline(5, 0, 1, color='k', ls='--')
+err_ax.text(0, 1, '*', fontsize=14)
 leg_handles = err_ax.get_legend_handles_labels()[0]
 err_ax.legend(leg_handles, ['Fem -/-', 'Male -/-', 'Fem +/+', 'Male +/+'], loc='upper center', bbox_to_anchor=(0.5, 1.05),
-          ncol=2, fancybox = True, shadow=False)
+              ncol=2, fancybox=True, shadow=False)
 err_ax.set_ylabel('Mean Errors')
 err_ax.set_xlabel('')
 
-sns.pointplot(x='Block', y='Latency mean', hue='Group', hue_order=['FKO', 'MKO', 'FWT', 'MWT'], data=HWK_lat_gpd, kind='point', scale = 0.8, ci=68, capsize=.1, palette=[
-                       'g', 'g', 'b', 'b'], linestyles=['--', '-', '--', '-'], markers=['v', 'o', 'v', 'o'], errwidth=2, dodge=True, ax = lat_ax)
+sns.pointplot(x='Block', y='Latency mean', hue='Group', hue_order=['FKO', 'MKO', 'FWT', 'MWT'], data=HWK_lat_gpd, kind='point', scale=0.8, ci=68, capsize=.1, palette=[
+    'g', 'g', 'b', 'b'], linestyles=['--', '-', '--', '-'], markers=['v', 'o', 'v', 'o'], errwidth=2, dodge=True, ax=lat_ax)
 sns.despine()
-lat_ax.axvline(5, 0, 1, color = 'k', ls = '--')
-lat_ax.text(0, 8, '*', fontsize = 14)
+lat_ax.axvline(5, 0, 1, color='k', ls='--')
+lat_ax.text(0, 8, '*', fontsize=14)
 leg_handles = lat_ax.get_legend_handles_labels()[0]
 lat_ax.legend_.remove()
 lat_ax.set_ylabel('Mean Latency (s)')
 lat_ax.set_xlabel('Trial Block')
 #%%
-HW_figure.savefig('/Users/felipeantoniomendezsalcido/Desktop/PDCB pics/HWK_modified.png', dpi= 300)
+HW_figure.savefig('/Users/felipeantoniomendezsalcido/Desktop/PDCB pics/HWK_modified.png', dpi=300)
 # OK all that worked
 HWK_err_gpd
-HWK_short = HWK_err_gpd.drop(HWK_err_gpd[HWK_err_gpd['Task Phase'].isin(['Testing_4', 'Testing_5'])].index)
+HWK_short = HWK_err_gpd.drop(
+    HWK_err_gpd[HWK_err_gpd['Task Phase'].isin(['Testing_4', 'Testing_5'])].index)
 HWK_short
-HWK_short_lat = HWK_lat_gpd.drop(HWK_lat_gpd[HWK_lat_gpd['Task Phase'].isin(['Testing_4', 'Testing_5'])].index)
+HWK_short_lat = HWK_lat_gpd.drop(
+    HWK_lat_gpd[HWK_lat_gpd['Task Phase'].isin(['Testing_4', 'Testing_5'])].index)
 #%%
-HW_figure,  (err_ax, lat_ax) = plt.subplots(nrows=2, figsize = (7, 5))
-sns.pointplot(x='Block', y='Error mean', hue='Group', hue_order=['FKO', 'MKO', 'FWT', 'MWT'], data=HWK_short, kind='point', scale = 0.8, ci=68, capsize=.1, palette=[
-                   'g', 'g', 'b', 'b'], linestyles=['--', '-', '--', '-'], markers=['v', 'o', 'v', 'o'], errwidth=2, dodge=True, ax = err_ax)
+HW_figure,  (err_ax, lat_ax) = plt.subplots(nrows=2, figsize=(7, 5))
+sns.pointplot(x='Block', y='Error mean', hue='Group', hue_order=['FKO', 'MKO', 'FWT', 'MWT'], data=HWK_short, kind='point', scale=0.8, ci=68, capsize=.1, palette=[
+    'g', 'g', 'b', 'b'], linestyles=['--', '-', '--', '-'], markers=['v', 'o', 'v', 'o'], errwidth=2, dodge=True, ax=err_ax)
 sns.despine()
 plt.axvline(3, 0, 1)
 leg_handles = err_ax.get_legend_handles_labels()[0]
 err_ax.legend(leg_handles, ['Fem -/-', 'Male -/-', 'Fem +/+', 'Male +/+'], loc='upper center', bbox_to_anchor=(0.5, 1.05),
-          ncol=2, fancybox=True, shadow=True)
+              ncol=2, fancybox=True, shadow=True)
 err_ax.set_ylabel('Mean Errors')
 err_ax.set_xlabel('')
 
-sns.pointplot(x='Block', y='Latency mean', hue='Group', hue_order=['FKO', 'MKO', 'FWT', 'MWT'], data=HWK_short_lat, kind='point', scale = 0.8, ci=68, capsize=.1, palette=[
-                       'g', 'g', 'b', 'b'], linestyles=['--', '-', '--', '-'], markers=['v', 'o', 'v', 'o'], errwidth=2, dodge=True, ax = lat_ax)
+sns.pointplot(x='Block', y='Latency mean', hue='Group', hue_order=['FKO', 'MKO', 'FWT', 'MWT'], data=HWK_short_lat, kind='point', scale=0.8, ci=68, capsize=.1, palette=[
+    'g', 'g', 'b', 'b'], linestyles=['--', '-', '--', '-'], markers=['v', 'o', 'v', 'o'], errwidth=2, dodge=True, ax=lat_ax)
 sns.despine()
 leg_handles = lat_ax.get_legend_handles_labels()[0]
 lat_ax.legend_.remove()
@@ -248,7 +250,8 @@ pg.mixed_anova(data=HWK_short, dv='Error mean', within='Block',
                between='Group', subject='Subject')
 
 
-bonf = pg.pairwise_ttests(data=HWK_short, dv='Error mean', within='Block', between='Group', subject='Subject', alpha=0.05, padjust='holm', return_desc=True)
+bonf = pg.pairwise_ttests(data=HWK_short, dv='Error mean', within='Block',
+                          between='Group', subject='Subject', alpha=0.05, padjust='holm', return_desc=True)
 
 bonf
 
@@ -410,7 +413,7 @@ Lat_err.savefig('/Users/felipeantoniomendezsalcido/Desktop/Latencia_error_correl
 
 # Open Field Analysis
 
-OF_data = pd.read_csv('/Users/felipeantoniomendezsalcido/Desktop/Data/OF_summary_report.csv')
+OF_data = pd.read_csv('/Users/felipeantoniomendezsalcido/Desktop/Data/OF_summary_Nov.csv')
 
 OF_data['% Center'] = OF_data['Time in Zone (%) - Zone 6'] + OF_data['Time in Zone (%) - Zone 7'] + \
     OF_data['Time in Zone (%) - Zone 10'] + OF_data['Time in Zone (%) - Zone 11']
@@ -423,22 +426,22 @@ OF_data['Subject Group'] = OF_data['Gender'].astype(str).str[0] + OF_data['Subje
 
 OF_data
 # Open Field Statistics
-pg.anova(dv='Total Distance', between=['Gender', 'Genotype'],
-         data=OF_data, detailed=True, export_filename='OFaov_distance')
+pg.anova(dv='Total Distance', between='Subject Group', data=OF_data, detailed=True,
+         export_filename='/Users/felipeantoniomendezsalcido/Desktop/Data/OF_TotalDistance')
 OFdist_tk = pg.pairwise_tukey(
     dv='Total Distance', between='Subject Group', data=OF_data, alpha=0.05)
 OFdist_tk
-pg.anova(dv='Zone Transition Number', between=[
-         'Gender', 'Genotype'], data=OF_data, detailed=True, export_filename='OFaov_crosses')
+pg.anova(dv='Zone Transition Number', between='Subject Group', data=OF_data, detailed=True,
+         export_filename='/Users/felipeantoniomendezsalcido/Desktop/Data/OF_TotalCrosses')
 OFcross_tk = pg.pairwise_tukey(dv='Zone Transition Number',
                                between='Subject Group', data=OF_data, alpha=0.05)
 OFcross_tk
-pg.anova(dv='% Center', between=['Gender', 'Genotype'],
-         data=OF_data, detailed=True, export_filename='OFaov_center')
+pg.anova(dv='% Center', between='Subject Group', data=OF_data, detailed=True,
+         export_filename='/Users/felipeantoniomendezsalcido/Desktop/Data/OF_Center')
 OFcenter_tk = pg.pairwise_tukey(dv='% Center', between='Subject Group', data=OF_data, alpha=0.05)
 OFcenter_tk
-pg.anova(dv='% Periphery', between=['Gender', 'Genotype'],
-         data=OF_data, detailed=True, export_filename='OFaov_periphery')
+pg.anova(dv='% Periphery', between='Subject Group', data=OF_data, detailed=True,
+         export_filename='/Users/felipeantoniomendezsalcido/Desktop/Data/OF_Periphery')
 OFper_tk = pg.pairwise_tukey(dv='% Periphery', between='Subject Group', data=OF_data, alpha=0.05)
 OFper_tk
 #%%
@@ -446,27 +449,25 @@ OF_plot = plt.figure(figsize=(8, 8))
 dist_ax = plt.subplot(2, 2, 1)
 sns.barplot(x='Gender', y='Total Distance', hue='Genotype', data=OF_data,
             palette=['forestgreen', 'royalblue'], ci=68, capsize=.1)
-dist_ax.annotate('*', xy=(0.5, .93), xytext=(0.5, .91), xycoords='axes fraction', fontsize=18, ha='center',
-                 va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=4.5, lengthB=.1', lw=2, color='black'))
-dist_ax.annotate('*', xy=(.75, .84), xytext=(.75, .82), xycoords='axes fraction', fontsize=18, ha='center',
-                 va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=1.5, lengthB=.1', lw=2, color='black'))
+#dist_ax.annotate('*', xy=(0.5, .93), xytext=(0.5, .91), xycoords='axes fraction', fontsize=18, ha='center',va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=4.5, lengthB=.1', lw=2, color='black'))
+#dist_ax.annotate('*', xy=(.75, .84), xytext=(.75, .82), xycoords='axes fraction', fontsize=18, ha='center',va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=1.5, lengthB=.1', lw=2, color='black'))
 plt.ylabel('Total Distance (cm)')
 plt.ylim(0, 7000)
 plt.yticks(range(0, 7000, 1000))
-dist_ax.get_legend().remove()
+# dist_ax.get_legend().remove()
 cross_ax = plt.subplot(2, 2, 2)
 sns.barplot(x='Gender', y='Zone Transition Number', hue='Genotype', data=OF_data,
             palette=['forestgreen', 'royalblue'], ci=68, capsize=.1)
 plt.ylabel('Crosses')
+cross_ax.get_legend().remove()
 center_ax = plt.subplot(2, 2, 3)
 sns.barplot(x='Gender', y='% Center', hue='Genotype', data=OF_data,
             palette=['forestgreen', 'royalblue'], ci=68, capsize=.1)
 plt.ylabel('Time in Arena Center (%)')
-center_ax.annotate('*', xy=(0.5, .93), xytext=(0.5, .91), xycoords='axes fraction', fontsize=18, ha='center',
-                   va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=4.5, lengthB=.1', lw=2, color='black'))
-center_ax.annotate('***', xy=(0.25, .83), xytext=(0.25, .81), xycoords='axes fraction', fontsize=18, ha='center',
+#center_ax.annotate('*', xy=(0.5, .93), xytext=(0.5, .91), xycoords='axes fraction', fontsize=18, ha='center',va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=4.5, lengthB=.1', lw=2, color='black'))
+center_ax.annotate('*', xy=(0.25, .83), xytext=(0.25, .81), xycoords='axes fraction', fontsize=18, ha='center',
                    va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=1.5, lengthB=.1', lw=2, color='black'))
-center_ax.annotate('**', xy=(0.75, .83), xytext=(0.75, .81), xycoords='axes fraction', fontsize=18, ha='center',
+center_ax.annotate('*', xy=(0.75, .83), xytext=(0.75, .81), xycoords='axes fraction', fontsize=18, ha='center',
                    va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=1.5, lengthB=.1', lw=2, color='black'))
 center_ax.annotate('***', xy=(0.5, .75), xytext=(0.5, .73), xycoords='axes fraction', fontsize=18, ha='center',
                    va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=2, lengthB=.1', lw=2, color='black'))
@@ -478,8 +479,7 @@ sns.barplot(x='Gender', y='% Periphery', hue='Genotype', data=OF_data,
             palette=['forestgreen', 'royalblue'], ci=68, capsize=.1)
 peri_ax.annotate('*', xy=(0.75, .85), xytext=(0.75, .83), xycoords='axes fraction', fontsize=18, ha='center',
                  va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=1.5, lengthB=.1', lw=2, color='black'))
-peri_ax.annotate('**', xy=(0.25, .85), xytext=(0.25, .83), xycoords='axes fraction', fontsize=18, ha='center',
-                 va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=1.5, lengthB=.1', lw=2, color='black'))
+#peri_ax.annotate('*', xy=(0.25, .85), xytext=(0.25, .83), xycoords='axes fraction', fontsize=18, ha='center', va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=1.5, lengthB=.1', lw=2, color='black'))
 peri_ax.annotate('***', xy=(0.5, .93), xytext=(0.5, .91), xycoords='axes fraction', fontsize=18, ha='center',
                  va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=2, lengthB=.1', lw=2, color='black'))
 plt.ylim(0, 100)
@@ -488,7 +488,7 @@ plt.ylabel('Time in Arena Periphery (%)')
 peri_ax.get_legend().remove()
 plt.tight_layout()
 #%%
-OF_plot.savefig('/Users/felipeantoniomendezsalcido/Desktop/OF_analysis.png')
+OF_plot.savefig('/Users/felipeantoniomendezsalcido/Desktop/OF_analysis2.png', dpi=300)
 OF_data
 
 # Area Timm Analysis
@@ -503,7 +503,7 @@ pg.ttest(x=timm_df['Mean Area'][timm_df['Genotype'] == 'WT'],
 #%%
 timm_fig, (a0, a1) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [3, 1]}, figsize=(7, 3))
 timm_point = sns.pointplot(x='Level', y='Mean Area', hue='Genotype', data=timm_df, palette=[
-                           'b', 'g'], capsize=.05, scale = .7, errorwidth=.05, ci=68, ax=a0, label=['a', 'b'])
+                           'b', 'g'], capsize=.05, scale=.7, errorwidth=.05, ci=68, ax=a0, label=['a', 'b'])
 a0.set_ylabel(r'Mean Area ($\mu$m$^2$)')
 a0.set_xlabel('from Bregma (mm)')
 a0.invert_xaxis()
@@ -511,11 +511,48 @@ sns.despine()
 timm_point.get_legend().remove()
 timm_fig.legend(loc='upper right', bbox_to_anchor=(.29, .93), ncol=1)
 timm_total = sns.barplot(x='Genotype', y='Mean Area', data=timm_df,
-                         palette=['b', 'g'], ax=a1, ci=68, capsize=0.05, errwidth = 1.5)
+                         palette=['b', 'g'], ax=a1, ci=68, capsize=0.05, errwidth=1.5)
 a1.set_ylabel(r'Mean Area ($\mu$m$^2$)')
 a1.annotate('***', xy=(0.5, .98), xytext=(0.5, .96), xycoords='axes fraction', fontsize=18, ha='center',
             va='bottom', fontweight='bold', arrowprops=dict(arrowstyle='-[, widthB=1.5, lengthB=.2', lw=1, color='black'))
 #a1.set_ylim(0, 20000)
 plt.tight_layout()
 #%%
-timm_fig.savefig('/Users/felipeantoniomendezsalcido/Desktop/Timm_fig.png', dpi = 300)
+timm_fig.savefig('/Users/felipeantoniomendezsalcido/Desktop/Timm_fig.png', dpi=300)
+
+
+# Elevated Plus Maze (EPM)
+
+epm_df = pd.read_csv('/Users/felipeantoniomendezsalcido/Desktop/Data/EPM_report.csv')
+
+epm_df
+#%%
+epm_plot = plt.figure(figsize=(8, 8))
+dist_ax = plt.subplot(2, 2, 1)
+sns.barplot(x='Subject Gender', y='Total Distance', hue='Subject Genotype', hue_order=['KO', 'WT'], data=epm_df,
+            palette=['forestgreen', 'royalblue'], ci=68, capsize=.1)
+dist_ax.set_ylabel('Total Distance(cm)')
+dist_ax.set_xlabel('Sex')
+dist_ax.get_legend().remove()
+
+timeOA_ax = plt.subplot(2, 2, 2)
+sns.barplot(x='Subject Gender', y='Time in Open (%)', hue='Subject Genotype', hue_order=['KO', 'WT'], data=epm_df,
+            palette=['forestgreen', 'royalblue'], ci=68, capsize=.1)
+timeOA_ax.set_ylabel('Time in Open Arms(%)')
+timeOA_ax.set_xlabel('Sex')
+timeOA_ax.get_legend().remove()
+distOA_ax = plt.subplot(2, 2, 3)
+sns.barplot(x='Subject Gender', y='Distance in Open (%)', hue='Subject Genotype', hue_order=['KO', 'WT'], data=epm_df,
+            palette=['forestgreen', 'royalblue'], ci=68, capsize=.1)
+distOA_ax.set_ylabel('Distance in Open Arms(%)')
+distOA_ax.set_xlabel('Sex')
+distOA_ax.get_legend().remove()
+timeCen_ax = plt.subplot(2, 2, 4)
+sns.barplot(x='Subject Gender', y='Time in Center (%)', hue='Subject Genotype', hue_order=['KO', 'WT'], data=epm_df,
+            palette=['forestgreen', 'royalblue'], ci=68, capsize=.1)
+timeCen_ax.set_ylabel('Time in Center(%)')
+timeCen_ax.set_xlabel('Sex')
+timeCen_ax.legend(title='Genotype')
+plt.tight_layout()
+#%%
+epm_plot.savefig('/Users/felipeantoniomendezsalcido/Desktop/EPM_fig.png', dpi=300)
