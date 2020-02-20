@@ -24,41 +24,50 @@ tags = file_eg.get_event_timestamps()[0] / 2 - 4850000  # clean it
 tags = tags.flatten()  # got to do this to make it work.
 # type(tags)
 # tags
+#%%
+plt.figure(figsize=(16, 8))
 plt.plot(clean_rec)
+#%%
 a_min = 60 * sf_Hz  # what's a minute but a bunch of samples?
-# define the segments (not neo.segments) by [NaS]
+
+# define the segments (SoI)  (not neo.segments) by [NaS]
+#%%
 basal = clean_rec[int(tags[1] - a_min):int(tags[1])]
-NaS_1 = clean_rec[int(tags[1]):int(tags[1] + a_min)]
+NaS_1 = clean_rec[int(tags[1]):int(tags[1] + (2 * a_min))]
 NaS_1rec = clean_rec[int(tags[2] - a_min):int(tags[2])]
-NaS_2 = clean_rec[clean_rec[int(tags[2]):int(tags[2] + a_min)]]
+NaS_2 = clean_rec[int(tags[2]):int(tags[2] + a_min)]
 NaS_2rec = clean_rec[int(tags[3] - a_min):int(tags[3])]
 NaS_3 = clean_rec[int(tags[3]):int(tags[3] + a_min)]
 NaS_3rec = clean_rec[int(tags[4] - a_min):int(tags[4])]
 NaS_4 = clean_rec[int(tags[4]):int(tags[4] + a_min)]
-NaS_4rec = clean_rec[int(tags[4] - a_min):int(tags[4])]
-(len(bsl) / sf_Hz) / 60
-# Verification plot of SoI
-(int(tags[0]) + 75000) - int(tags[0])
-a_min = 60 * sf_Hz
-all_SoI = [basal, NaS_1, NaS_2, NaS_3, NaS_4]
+#%%
+# this one might not work on every file
+NaS_4rec = clean_rec[int(tags[4] + (20 * a_min)):int(tags[4] + (21 * a_min))]
 
-#%%
-plt.figure(figsize=(16, 8))
-plt.plot()
-#%%
+all_SoI = [basal, NaS_1, NaS_1rec, NaS_2, NaS_2rec, NaS_3, NaS_3rec, NaS_4, NaS_4]
+
+
 wd = 4 * sf_Hz  # windows for Welch periodogram
-f, px = sp_sig.welch(NaS_1[:], sf_Hz, nperseg=wd)
+f, px = sp_sig.welch(NaS_1, sf_Hz, nperseg=wd)
 #%%
-plt.figure(figsize=(16, 8))
+spec_fig = plt.figure(figsize=(8, 6))
 psd_ax = plt.subplot(2, 1, 1)
+psd_ax.set_title('Periodograma (Welch)')
 plt.semilogy(f, px)
+psd_ax.set_ylabel('PSD (V^2/Hz)')
 plt.xlim(0, 100)
+psd_ax.set_xticks(ticks=range(0, 105, 5), minor=True)
+psd_ax.set_xlabel('Frecuencia [Hz]')
 psd_ax.set_xticks(ticks=range(0, 110, 10))
 spec_ax = plt.subplot(2, 1, 2)
+spec_ax.set_title('Espectrograma')
 plt.specgram(NaS_1, Fs=sf_Hz, cmap='viridis', scale='dB')
-plt.colorbar(pad=.01, fraction=0.01)
+spec_ax.set_ylabel('Frecuencia (Hz)')
+plt.colorbar(pad=.01, fraction=0.03)
 plt.ylim(0, 100)
+plt.tight_layout()
 #%%
+
 # Normal lfp power analysis by bands, the usual stuff
 f_res = f[1] - f[0]
 total_power = simps(px, dx=f_res)  # all the power
