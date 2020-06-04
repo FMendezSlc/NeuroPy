@@ -18,31 +18,39 @@ def detec_outlier(df, var_name, var_group):
         outliers = df[(df[var_group] == group) & (~df[var_name].between(th_down, th_up))].index
         clean_df.drop(outliers, inplace = True)
     return clean_df
-
+#Get just sample phase data
 si_samp = si_raw[si_raw['Phase'] == 'Sample']
 si_samp = detec_outlier(si_samp, 'Total Exploration', 'Group')
 
 samp_time = pd.melt(si_samp, id_vars=['Subject', 'Group'], value_vars=['Time Object/New Cons Chamber', 'Time Conspecific Chamber'], var_name='Side', value_name='Time')
-pg.normality(si_samp, dv='Total Exploration', group= 'Group')
-pg.normality(si_samp, dv='Time Conspecific Chamber', group='Group')
-pg.normality(si_samp, dv='Time Object/New Cons Chamber', group='Group')
 
+vars_time = ['Total Exploration', 'Time Conspecific Chamber', 'Time Object/New Cons Chamber']
+# Test for normality
+for var_ in vars_time:
+    print(f'Normality test (Shapiro), {var_}')
+    print(pg.normality(si_samp, dv=var_, group='Group'))
+#Get test phase data
 test_df = si_raw[si_raw['Phase'] == 'Test']
 test_df = detec_outlier(test_df, 'Total Exploration', 'Group')
 
-test_time = pd.melt(a_test, id_vars=['Subject', 'Group'], value_vars=['Time Object/New Cons Chamber', 'Time Conspecific Chamber'], var_name='Side', value_name='Time')
+test_time = pd.melt(test_df, id_vars=['Subject', 'Group'], value_vars=['Time Object/New Cons Chamber', 'Time Conspecific Chamber'], var_name='Side', value_name='Time')
+#Test for normality
+for var_ in vars_time:
+    print(f'Normality test (Shapiro), {var_}')
+    print(pg.normality(test_df, dv=var_, group='Group'))
 
-pg.normality(test_df, dv='Total Exploration', group='Group')
-pg.normality(test_df, dv='Time Object/New Cons Chamber', group='Group')
-pg.normality(test_df, dv='Time Conspecific Chamber', group='Group')
-
-pg.anova(data=si_samp, dv='Total Exploration', between='Group')
-pg.anova(data=test_df, dv='Total Exploration', between='Group')
-
-rm_df = pd.melt(si_raw, id_vars=['Subject', 'Group', 'Phase'], value_vars=['Time Object/New Cons Chamber', 'Time Conspecific Chamber'], var_name='Side', value_name='Time')
-
-pg.rm_anova(data=rm_df[rm_df['Group']=='KOF'], dv='Time', within=['Phase', 'Side'], subject='Subject')
-
+# Within group rm ANOVA to determine side preference
+#Prep df with only Sample and Test phases
+rm_df = si_raw[si_raw['Phase']!='Habituation']
+rm_df = pd.melt(rm_df, id_vars=['Subject', 'Group', 'Phase'], value_vars=['Time Object/New Cons Chamber', 'Time Conspecific Chamber'], var_name='Side', value_name='Time')
+# Run ANOVA
+samp_anova = pg.anova(data=rm_df[rm_df['Phase']=='Sample'], dv='Time', between=['Side', 'Group'])
+#Save to csv
+samp_anova.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Stats/sample_time_anova.csv')
+# post hoc test, pairwise_ttests, holm-bonf correction
+samp_posthoc = pg.pairwise_ttests(data=rm_df[rm_df['Phase']=='Sample'], dv='Time', between=['Group', 'Side'], padjust= 'holm')
+samp_posthoc.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Stats/sample_time_posthoc.csv')
+samp_posthoc[['Group', 'p-corr']]
 #%%
 choice_fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(7, 4))
 plt.suptitle('Social Choice')
