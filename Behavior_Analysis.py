@@ -51,6 +51,16 @@ samp_anova.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Stats/sample_time_
 samp_posthoc = pg.pairwise_ttests(data=rm_df[rm_df['Phase']=='Sample'], dv='Time', between=['Group', 'Side'], padjust= 'holm')
 samp_posthoc.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Stats/sample_time_posthoc.csv')
 samp_posthoc[['Group', 'p-corr']]
+ph_val = zip(['***', '***', '***', '*'], [6,55,102,155], [120, 100, 120, 120])
+for ii, jj, kk in ph_val:
+    print(ii, jj, kk)
+
+test_anova = pg.anova(data=rm_df[rm_df['Phase']=='Test'], dv='Time', between=['Side', 'Group'])
+test_anova.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Stats/test_time_anova.csv')
+test_posthoc = pg.pairwise_ttests(data=rm_df[rm_df['Phase']=='Test'], dv='Time', between=['Group', 'Side'], padjust= 'holm')
+test_posthoc
+test_posthoc.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Stats/test_time_posthoc.csv')
+
 #%%
 choice_fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(7, 4))
 plt.suptitle('Social Choice')
@@ -59,10 +69,16 @@ axs[0].set_ylabel('Total Time Exploring (s)')
 
 sns.boxplot(x='Group', y='Time', hue='Side', data=samp_time, palette=['dimgray', 'white'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, width=0.8, ax=axs[1])
 handles, labels = axs[1].get_legend_handles_labels()
-axs[1].legend(handles=handles, labels=['Obj', 'Cons'])
+#axs[1].set_ylim(25, 225)
+axs[1].legend(handles=handles, labels=['Obj', 'Cons'], frameon=False)
 axs[1].set_ylabel('Time in Chamber (s)')
+ph_val = zip(['***', '***', '***', '*'], [6,55,102,155], [120, 90, 120, 120])
+for text, x, y in ph_val:
+    axs[1].annotate(s=text, xy=(x,y), xycoords='axes points', fontsize=12)
 plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-
+#%%
+choice_fig.savefig('/Users/labc02/Documents/PDCB_data/Behavior/Figures/si_choice.png', dpi = 600)
+#%%
 novel_fig, axs_ = plt.subplots(nrows=1, ncols=2, figsize=(7, 4))
 plt.suptitle('Social Novelty Preference')
 sns.boxplot(x='Group', y='Total Exploration', data=test_df, ax=axs_[0], palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, width=0.5)
@@ -70,39 +86,56 @@ axs_[0].set_ylabel('Total Time Exploring (s)')
 
 sns.boxplot(x='Group', y='Time', hue='Side', data=test_time, palette=['dimgray', 'white'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, width=0.8, ax=axs_[1])
 handles, labels = axs_[1].get_legend_handles_labels()
-axs_[1].legend(handles=handles, labels=['New', 'Fam'])
+axs_[1].legend(handles=handles, labels=['New', 'Fam'], frameon=False)
 axs_[1].set_ylabel('Time in Chamber (s)')
+axs_[1].annotate(s='**', xy=(9,180), xycoords='axes points', fontsize=12)
 plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 #%%
+novel_fig.savefig('/Users/labc02/Documents/PDCB_data/Behavior/Figures/si_novelty.png', dpi = 600)
 
-
+# Indexes: Sociability, Social Recognition and Novelty Preference
+#Sociability
+si_samp['Sociability']=((si_samp['Time Conspecific Chamber']-si_samp['Time Object/New Cons Chamber'])/si_samp['Total Exploration']).round(2)
+soc_anova = pg.anova(data=si_samp, dv='Sociability', between='Group')
+soc_ph= pg.pairwise_ttests(data=si_samp, dv='Sociability', between='Group', padjust='holm')
+soc_ph
+#Novelty Preference
+test_df['Novelty']=((test_df['Time Object/New Cons Chamber']-test_df['Time Conspecific Chamber'])/test_df['Total Exploration']).round(2)
+test_df['Novelty']
+nov_anova = pg.anova(data=test_df, dv='Novelty', between='Group')
+nov_anova
+nov_ph= pg.pairwise_ttests(data=test_df, dv='Novelty', between='Group', padjust='holm')
+nov_ph
+#Social Recognition
+samp_sub = set(si_samp['Subject'])
+tst_sub = set(test_df['Subject'])
+sub_set = samp_sub.intersection(tst_sub)
+si_samp[si_samp['Subject'].isin(sub_set)]
+srm_df = si_samp[['Subject', 'Group', 'Time Conspecific Chamber']][si_samp['Subject'].isin(sub_set)]
+srm_df['Time New Cons'] = test_df['Time Object/New Cons Chamber'][test_df['Subject'].isin(sub_set)].values
+srm_df
+srm_df['SRM']=(srm_df['Time New Cons']-srm_df['Time Conspecific Chamber'])/(srm_df['Time New Cons']+srm_df['Time Conspecific Chamber'])
+srm_nova= pg.anova(srm_df, dv='SRM', between='Group')
+srm_ph = pg.pairwise_ttests(srm_df, dv='SRM', between='Group', padjust='holm')
+srm_ph
 #%%
-[inter_fig, axs]=plt.subplots(nrows=1, ncols=2, figsize=(7,3.5), dpi= 600)
-sns.barplot(x='Group', y='Entries', hue='Side', data=samp_ent, ci=68, palette=['grey', 'white'], edgecolor='k', capsize=.1, ax=axs[0])
-axs[0].get_legend().set_visible(False)
-sns.boxplot(x='Group', y='Time', hue='Side', data=samp_time, palette=['grey', 'white'], ax=axs[1])
-handles, labels = axs[1].get_legend_handles_labels()
-axs[1].legend(handles=handles, labels=['Obj', 'Cons'])
+idx_fig, idx_ax = plt.subplots(nrows=1, ncols=3, figsize=(7,4))
+sns.boxplot(data=si_samp, x='Group', y='Sociability', palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], width=.5, showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=idx_ax[0])
+idx_ax[0].annotate(s='**', xy=(25, 70), xycoords='axes points', xytext=(-4.5, -15), textcoords='offset points', arrowprops={'arrowstyle':'-[', 'color':'k'})
+idx_ax[0].annotate(s='***', xy=(60, 70), xycoords='axes points', xytext=(-7, -15), textcoords='offset points', arrowprops={'arrowstyle':'-[', 'color':'k'})
+props = {'connectionstyle':'bar','arrowstyle':'-[',\
+                 'shrinkA':2,'shrinkB':2,'linewidth':1, 'color':'k'}
+idx_ax[0].annotate('**', xy=(0.65, .2), xytext=(0.65, .13), xycoords='axes fraction', ha='center',
+                va='bottom', arrowprops=dict(arrowstyle='-[, widthB=2.5, lengthB=.1', lw=1, color='k'))
+
+sns.boxplot(data=test_df, x='Group', y='Novelty', palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], width=.5, showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=idx_ax[1])
+idx_ax[1].set_ylabel('Novelty Preference')
+idx_ax[1].annotate('*', xy=(0.35, .06), xytext=(0.35, .001), xycoords='axes fraction', ha='center',
+                va='bottom', arrowprops=dict(arrowstyle='-[, widthB=2.2, lengthB=.1', lw=1, color='k'))
+
+sns.boxplot(data=srm_df, x='Group', y='SRM', palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], width=.5, showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=idx_ax[2])
+idx_ax[2].annotate('**', xy=(0.25, .8), xytext=(0.25, .80), xycoords='axes fraction', ha='center',
+                va='bottom', arrowprops=dict(arrowstyle='-[, widthB=1, lengthB=.1', lw=1, color='k'))
 plt.tight_layout()
 #%%
-# Socialbility Index: (Time_Cons - Time_Obj) / (Time_Cons + Time_Obj)
-si_samp['Soc_Idx'] =(si_samp.loc[:,] - si_samp.iloc[:,-3])/si_samp.iloc[:,-1]
-
-si_samp['Soc_Idx'] =  si_samp['Soc_Idx'].round(2)
-
-si_samp
-si_samp_ent = si_samp.loc[:,['Group', 'Entries Obj/New Cons', 'Entries Conspecific']]
-
-si_samp_ent= pd.melt(si_samp_ent, id_vars=['Group'], value_vars=['Entries Obj/New Cons', 'Entries Conspecific'], var_name = 'Side', value_name = 'Entries')
-
-for ii,jj in enumerate(si_samp_ent['Side']):
-    if 'Obj' in jj:
-        si_samp_ent.iloc[ii, 1] = 'Object'
-    else:
-        si_samp_ent.iloc[ii, 1] = 'Conspecific'
-
-si_samp_ent
-sns.boxplot(x = 'Group', y = 'Entries', data = si_samp_ent, hue = 'Side', showmeans = True, meanprops={"marker":"+","markeredgecolor":"k"}, palette= ['dimgray', 'white'])
-# Figure: Sample Phase
-#%%
-samp_fig = plt.figure()
+idx_fig.savefig('/Users/labc02/Documents/PDCB_data/Behavior/Figures/social_idx.png', dpi = 600)
