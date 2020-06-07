@@ -10,14 +10,16 @@ def detec_outlier(df, var_name, var_group):
     Outlier detection based on absolute deviaton from the median.
     Returns a copy of the original DataFrame without the indexes deemed as outliers'''
     clean_df = df.copy()
+    outliers_idx = []
     for group in df[var_group].unique():
         mad = df[var_name][df[var_group] == group].mad()
         median = df[var_name][df[var_group] == group].median()
         th_up = median+(3*mad)
         th_down = median-(3*mad)
         outliers = df[(df[var_group] == group) & (~df[var_name].between(th_down, th_up))].index
+        outliers_idx.append(tuple(outliers))
         clean_df.drop(outliers, inplace = True)
-    return clean_df
+    return clean_df, outliers_idx
 #Get just sample phase data
 si_samp = si_raw[si_raw['Phase'] == 'Sample']
 si_samp = detec_outlier(si_samp, 'Total Exploration', 'Group')
@@ -139,3 +141,84 @@ idx_ax[2].annotate('**', xy=(0.25, .8), xytext=(0.25, .80), xycoords='axes fract
 plt.tight_layout()
 #%%
 idx_fig.savefig('/Users/labc02/Documents/PDCB_data/Behavior/Figures/social_idx.png', dpi = 600)
+
+#------------------------------------------------------------------------------#
+# Open Field Analysis
+
+of_raw = pd.read_csv('/Users/labc02/Documents/PDCB_data/Behavior/Open_Field/Open_Field_pool.csv')
+
+of_raw
+
+for var_ in ['Total Distance', 'Crosses', 'Time in Zone (%) - Center']:
+    print(f'Normality test (Shapiro), {var_}')
+    print(pg.normality(of_raw, dv=var_, group='Subject Group'))
+#Stats for distance
+dist_anova = pg.anova(data=of_raw, dv='Total Distance', between='Subject Group')
+dist_anova.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Open_Field/Stats/dist_anova.csv')
+dist_ph=pg.pairwise_ttests(data=of_raw, dv='Total Distance', between='Subject Group', padjust='holm')
+dist_ph.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Open_Field/Stats/dist_ph.csv')
+dist_ph
+#Stats for Crosses
+crosses_anova = pg.anova(data=of_raw, dv='Crosses', between='Subject Group')
+crosses_anova
+crosses_anova.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Open_Field/Stats/crosses_anova.csv')
+crosses_ph=pg.pairwise_ttests(data=of_raw, dv='Crosses', between='Subject Group', padjust='holm')
+crosses_ph.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Open_Field/Stats/crosses_ph.csv')
+#Stats for center time
+center_anova = pg.anova(data=of_raw, dv='Time in Zone (%) - Center', between='Subject Group')
+center_anova
+center_anova.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Open_Field/Stats/center_anova.csv')
+dist_ph=pg.pairwise_ttests(data=of_raw, dv='Total Distance', between='Subject Group', padjust='holm')
+dist_ph.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Open_Field/Stats/dist_ph.csv')
+dist_ph
+
+
+#%%
+of_figure, ax_of=plt.subplots(nrows=1, ncols=3, figsize=(7,4))
+sns.boxplot(x='Subject Group', y='Total Distance', data=of_raw, palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=ax_of[0])
+ax_of[0].set_ylabel('Total Distance (cm)')
+ax_of[0].set_xlabel('Group')
+ax_of[0].annotate('*', xy=(0.61, .06), xytext=(0.61, .001), xycoords='axes fraction', ha='center',
+                va='bottom', arrowprops=dict(arrowstyle='-[, widthB=2.4, lengthB=.1', lw=1, color='k'))
+
+sns.boxplot(x='Subject Group', y='Crosses', data=of_raw, palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=ax_of[1])
+ax_of[1].set_xlabel('Group')
+
+sns.boxplot(x='Subject Group', y='Time in Zone (%) - Center', data=of_raw, palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=ax_of[2])
+ax_of[2].set_ylabel('Time in Center (%)')
+ax_of[2].set_xlabel('Group')
+plt.tight_layout()
+#%%
+of_figure.savefig('/Users/labc02/Documents/PDCB_data/Behavior/Figures/Open_Field.png', dpi=600)
+#-----------------------------------------------------------------------------#
+# Elevated Plus Maze
+epm_raw= pd.read_csv('/Users/labc02/Documents/PDCB_data/Behavior/EPM/EPM_pool.csv')
+epm_s1 = epm_raw[epm_raw['Trial Session']=='Session 1']
+epm_s1
+
+for var_ in ['Entries in Zone - Center', 'Total Distance', 'Time in Zone (%) - Open Arms']:
+    print(var_)
+    print(pg.normality(data= epms1_clean, dv=var_, group='Subject Group'))
+
+epms1_clean, entries_out= detec_outlier(df=epm_s1, var_name='Entries in Zone - Center', var_group='Subject Group')
+entries_out
+epms1_clean, dist_out = detec_outlier(df=epm_s1, var_name='Total Distance', var_group='Subject Group')
+dist_out
+epms1_clean, open_out = detec_outlier(df=epms1_clean, var_name='Time in Zone (%) - Open Arms', var_group='Subject Group')
+open_out
+epm_s1[epm_s1['Entries in Zone - Center'].between(0, 5)]
+#%%
+epm_fig, epm_ax =plt.subplots(nrows=1, ncols=3, figsize=(7,4))
+sns.boxplot(x='Subject Group', y='Entries in Zone - Center', data=epms1_clean, palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=epm_ax[0])
+epm_ax[0].set_xlabel('Group')
+epm_ax[0].set_ylabel('Transitions through Center')
+
+sns.boxplot(x='Subject Group', y='Total Distance', data=epms1_clean, palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=epm_ax[1])
+epm_ax[1].set_xlabel('Group')
+epm_ax[1].set_ylabel('Total Distance (cm)')
+
+sns.boxplot(x='Subject Group', y='Time in Zone (%) - Open Arms', data=epms1_clean, palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=epm_ax[2])
+epm_ax[2].set_xlabel('Group')
+epm_ax[2].set_ylabel('Time in Open Arms (%)')
+plt.tight_layout()
+#%%
