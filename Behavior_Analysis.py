@@ -195,11 +195,11 @@ of_figure.savefig('/Users/labc02/Documents/PDCB_data/Behavior/Figures/Open_Field
 epm_raw= pd.read_csv('/Users/labc02/Documents/PDCB_data/Behavior/EPM/EPM_pool.csv')
 epm_s1 = epm_raw[epm_raw['Trial Session']=='Session 1']
 epm_s1
-
+# Normality tests (Shapiro)
 for var_ in ['Entries in Zone - Center', 'Total Distance', 'Time in Zone (%) - Open Arms']:
     print(var_)
     print(pg.normality(data= epms1_clean, dv=var_, group='Subject Group'))
-
+# Outliers detection (+-3 MAD)
 epms1_clean, entries_out= detec_outlier(df=epm_s1, var_name='Entries in Zone - Center', var_group='Subject Group')
 entries_out
 epms1_clean, dist_out = detec_outlier(df=epm_s1, var_name='Total Distance', var_group='Subject Group')
@@ -207,6 +207,22 @@ dist_out
 epms1_clean, open_out = detec_outlier(df=epms1_clean, var_name='Time in Zone (%) - Open Arms', var_group='Subject Group')
 open_out
 epm_s1[epm_s1['Entries in Zone - Center'].between(0, 5)]
+# Stats Session 1
+#Entries is normally distributed, anova
+entries_anova=pg.anova(data=epms1_clean, dv='Entries in Zone - Center', between='Subject Group')
+entries_anova.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/EPM/Stats/cross_center_anova.csv')
+# Total distance is not normal and fail Levenne; Welch anova
+dist_Welch=pg.welch_anova(data=epms1_clean, dv='Total Distance', between='Subject Group')
+dist_Welch
+tdist_ph = pg.pairwise_gameshowell(data=epms1_clean, dv='Total Distance', between='Subject Group')
+dist_Welch.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/EPM/Stats/total_dist_Welch.csv')
+tdist_ph.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/EPM/Stats/total_dist_ph.csv')
+pg.homoscedasticity(data=epms1_clean, dv='Time in Zone (%) - Open Arms', group='Subject Group')
+
+# Open Arms ANOVA
+opa_anova= pg.anova(data=epms1_clean, dv='Time in Zone (%) - Open Arms', between='Subject Group')
+opa_anova.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/EPM/Stats/opa_anova.csv')
+
 #%%
 epm_fig, epm_ax =plt.subplots(nrows=1, ncols=3, figsize=(7,4))
 sns.boxplot(x='Subject Group', y='Entries in Zone - Center', data=epms1_clean, palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=epm_ax[0])
@@ -216,9 +232,61 @@ epm_ax[0].set_ylabel('Transitions through Center')
 sns.boxplot(x='Subject Group', y='Total Distance', data=epms1_clean, palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=epm_ax[1])
 epm_ax[1].set_xlabel('Group')
 epm_ax[1].set_ylabel('Total Distance (cm)')
+epm_ax[1].annotate('*', xy=(0.5, .9), xytext=(0.5, .9), xycoords='axes fraction', ha='center',
+                va='bottom', arrowprops=dict(arrowstyle='-[, widthB=1, lengthB=.1', lw=1, color='k'))
 
 sns.boxplot(x='Subject Group', y='Time in Zone (%) - Open Arms', data=epms1_clean, palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=epm_ax[2])
 epm_ax[2].set_xlabel('Group')
 epm_ax[2].set_ylabel('Time in Open Arms (%)')
 plt.tight_layout()
 #%%
+epm_fig.savefig('/Users/labc02/Documents/PDCB_data/Behavior/Figures/epm_s1.png', dpi = 600)
+# SECOND SESSION
+epm_raw
+epm_s2 = epm_raw[epm_raw['Trial Session']=='Session 2']
+epm_s2
+
+# Check Normality
+for var in ['Entries in Zone - Center', 'Total Distance', 'Time in Zone (%) - Open Arms']:
+    print(var)
+    print(pg.normality(data = epm_s2, dv=var, group='Subject Group'))
+# Check homoscedasticity
+for var in ['Entries in Zone - Center', 'Total Distance', 'Time in Zone (%) - Open Arms']:
+    print(var)
+    print(pg.homoscedasticity(data = epm_s2, dv=var, group='Subject Group'))
+
+entries_anova=pg.anova(data=epm_s2, dv='Entries in Zone - Center', between='Subject Group')
+entries_anova
+entries_anova.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/EPM/Stats/cross_center_anova_s2.csv')
+# Total distance is not normal and fail Levenne; Welch anova
+dist_Welch=pg.welch_anova(data=epm_s2, dv='Total Distance', between='Subject Group')
+dist_Welch
+tdist_ph = pg.pairwise_gameshowell(data=epms1_clean, dv='Total Distance', between='Subject Group')
+tdist_ph
+dist_Welch.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/EPM/Stats/total_dist_Welch_s2.csv')
+tdist_ph.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/EPM/Stats/total_dist_ph_s2.csv')
+opa_anova= pg.anova(data=epm_s2, dv='Time in Zone (%) - Open Arms', between='Subject Group')
+opa_anova
+opa_anova.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/EPM/Stats/opa_anova_s2.csv')
+opa_ph=pg.pairwise_tukey(data= epm_s2, dv='Time in Zone (%) - Open Arms', between='Subject Group')
+opa_ph.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/EPM/Stats/opa_ph_s2.csv')
+#%%
+epms2_fig, epms2_ax =plt.subplots(nrows=1, ncols=3, figsize=(7,4))
+sns.boxplot(x='Subject Group', y='Entries in Zone - Center', data=epm_s2, palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=epms2_ax[0])
+epms2_ax[0].set_xlabel('Group')
+epms2_ax[0].set_ylabel('Transitions through Center')
+
+sns.boxplot(x='Subject Group', y='Total Distance', data=epm_s2, palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=epms2_ax[1])
+epms2_ax[1].set_xlabel('Group')
+epms2_ax[1].set_ylabel('Total Distance (cm)')
+epms2_ax[1].annotate('*', xy=(0.5, .9), xytext=(0.5, .9), xycoords='axes fraction', ha='center',
+                va='bottom', arrowprops=dict(arrowstyle='-[, widthB=1, lengthB=.1', lw=1, color='k'))
+
+sns.boxplot(x='Subject Group', y='Time in Zone (%) - Open Arms', data=epm_s2, palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=epms2_ax[2])
+epms2_ax[2].set_xlabel('Group')
+epms2_ax[2].set_ylabel('Time in Open Arms (%)')
+epms2_ax[2].annotate('**', xy=(0.5, .9), xytext=(0.5, .9), xycoords='axes fraction', ha='center',
+                va='bottom', arrowprops=dict(arrowstyle='-[, widthB=1, lengthB=.1', lw=1, color='k'))
+plt.tight_layout()
+#%%
+epms2_fig.savefig('/Users/labc02/Documents/PDCB_data/Behavior/Figures/epm_s2-png', dpi=600)
