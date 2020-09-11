@@ -3,7 +3,7 @@ import pandas as pd
 import seaborn as sns
 import pingouin as pg
 
-si_raw = pd.read_csv('/Users/labc02/Documents/PDCB_data/Behavior/Social_Interaction_data.csv')
+si_raw = pd.read_csv('/Users/labc02/Documents/PDCB_data/Behavior/Social Interaction/Social_Interaction_data.csv')
 
 def detec_outlier(df, var_name, var_group):
     '''[DataFrame, str, str -> DataFrame]
@@ -22,7 +22,7 @@ def detec_outlier(df, var_name, var_group):
     return clean_df, outliers_idx
 #Get just sample phase data
 si_samp = si_raw[si_raw['Phase'] == 'Sample']
-si_samp = detec_outlier(si_samp, 'Total Exploration', 'Group')
+si_samp, outs = detec_outlier(si_samp, 'Total Exploration', 'Group')
 
 samp_time = pd.melt(si_samp, id_vars=['Subject', 'Group'], value_vars=['Time Object/New Cons Chamber', 'Time Conspecific Chamber'], var_name='Side', value_name='Time')
 
@@ -64,7 +64,7 @@ test_posthoc
 test_posthoc.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Stats/test_time_posthoc.csv')
 
 #%%
-choice_fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(7, 4))
+choice_fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(7, 4))
 plt.suptitle('Social Choice')
 sns.boxplot(x='Group', y='Total Exploration', data=si_samp, ax=axs[0], palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, width=0.5)
 axs[0].set_ylabel('Total Time Exploring (s)')
@@ -77,6 +77,14 @@ axs[1].set_ylabel('Time in Chamber (s)')
 ph_val = zip(['***', '***', '***', '*'], [6,55,102,155], [120, 90, 120, 120])
 for text, x, y in ph_val:
     axs[1].annotate(s=text, xy=(x,y), xycoords='axes points', fontsize=12)
+sns.boxplot(data=si_samp, x='Group', y='Sociability', palette=['forestgreen', 'forestgreen', 'royalblue', 'royalblue'], width=.5, showmeans=True, meanprops={'marker':'+', 'markeredgecolor':'k'}, ax=axs[2])
+axs[2].annotate(s='**', xy=(25, 70), xycoords='axes points', xytext=(-4.5, -15), textcoords='offset points', arrowprops={'arrowstyle':'-[', 'color':'k'})
+axs[2].annotate(s='***', xy=(60, 70), xycoords='axes points', xytext=(-7, -15), textcoords='offset points', arrowprops={'arrowstyle':'-[', 'color':'k'})
+props = {'connectionstyle':'bar','arrowstyle':'-[',\
+                 'shrinkA':2,'shrinkB':2,'linewidth':1, 'color':'k'}
+axs[2].annotate('**', xy=(0.65, .2), xytext=(0.65, .13), xycoords='axes fraction', ha='center',
+                va='bottom', arrowprops=dict(arrowstyle='-[, widthB=2.5, lengthB=.1', lw=1, color='k'))
+
 plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 #%%
 choice_fig.savefig('/Users/labc02/Documents/PDCB_data/Behavior/Figures/si_choice.png', dpi = 600)
