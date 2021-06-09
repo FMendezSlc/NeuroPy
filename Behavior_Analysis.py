@@ -161,7 +161,7 @@ for var_ in ['Total Distance', 'Crosses', 'Time in Zone (%) - Center']:
     print(f'Normality test (Shapiro), {var_}')
     print(pg.normality(of_raw, dv=var_, group='Subject Group'))
 #Stats for distance
-dist_anova = pg.anova(data=of_raw, dv='Total Distance', between='Subject Group')
+dist_anova = pg.anova(data=of_raw, dv='Total Distance', between=['Subject Gender', 'Subject Genotype'])
 dist_anova.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Open_Field/Stats/dist_anova.csv')
 dist_ph=pg.pairwise_ttests(data=of_raw, dv='Total Distance', between='Subject Group', padjust='holm')
 dist_ph.to_csv('/Users/labc02/Documents/PDCB_data/Behavior/Open_Field/Stats/dist_ph.csv')
